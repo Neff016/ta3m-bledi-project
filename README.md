@@ -19,8 +19,8 @@ Ce projet a été développé dans le cadre du **Projet Technologies Web** à **
 
 ### Frontend
 
-- HTML5, CSS3, JavaScript
-- Bootstrap
+- HTML5, CSS, JavaScript
+
 
 ### Backend
 
