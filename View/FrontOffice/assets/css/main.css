@@ -45,11 +45,11 @@
 }
 
 .dark-background {
-  --background-color: #060606;
+  --background-color: #116530;   /* green instead of black */
   --default-color: #ffffff;
   --heading-color: #ffffff;
-  --accent-color: #2ea359;
-  --surface-color: #252525;
+  --accent-color: #ffffff;       /* white links, so they stay readable on green */
+  --surface-color: #0d4f25;      /* darker green for cards inside green sections */
   --contrast-color: #ffffff;
 }
 
