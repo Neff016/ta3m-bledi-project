@@ -71,30 +71,88 @@
   </header>
 
   <main class="main">
-    <section class="container my-5">
-           <h2>Modifier le  terrain</h2>
-<form>
-  <label>Nom du terrain</label>
-  <input type="text" name="nom">
+    
+      <section class="page-terrains">
+      <div class="container">
 
-  <label>Localisation (wilaya)</label>
-  <select name="localisation">
-    <option value="">-- Choisir --</option>
-    <option>Tunis</option><option>Zaghouan</option><option>Béja</option>
-  </select>
+        <!-- Bannière -->
+        <div class="hero-terrains">
+          <div>
+            <p class="sur-titre">Agriculture intelligente</p>
+            <h1>Modifier le terrain</h1>
+          </div>
+          <a href="mesTerrains.php" class="btn-hero">Retour à mes terrains</a>
+        </div>
 
-  <label>Superficie (ha)</label>
-  <input type="text" name="superficie">
+        <!-- Formulaire -->
+        <div class="carte-terrain">
+          <form action="" method="POST">
 
-  <label>Type de sol</label>
-  <select name="typeSol">
-    <option value="">-- Choisir --</option>
-    <option>Argileux</option><option>Sableux</option><option>Calcaire</option>
-  </select>
+            <input type="hidden" name="id" value="1">
 
-  <button type="submit">Ajouter</button>
-  <a href="mesTerrains.php">Annuler</a>
-</form>
+            <div class="row">
+              <div class="col-md-6 mb-4">
+                <label for="nom" class="form-label">Nom du terrain</label>
+                <input type="text" class="form-control" id="nom" name="nom" value="Terrain Zaghouan">
+              </div>
+
+              <div class="col-md-6 mb-4">
+                <label for="localisation" class="form-label">Localisation (wilaya)</label>
+                <select class="form-select" id="localisation" name="localisation">
+                  <option value="">-- Choisir une wilaya --</option>
+                  <option value="Ariana">Ariana</option>
+                  <option value="Béja">Béja</option>
+                  <option value="Ben Arous">Ben Arous</option>
+                  <option value="Bizerte">Bizerte</option>
+                  <option value="Gabès">Gabès</option>
+                  <option value="Gafsa">Gafsa</option>
+                  <option value="Jendouba">Jendouba</option>
+                  <option value="Kairouan">Kairouan</option>
+                  <option value="Kasserine">Kasserine</option>
+                  <option value="Kébili">Kébili</option>
+                  <option value="Le Kef">Le Kef</option>
+                  <option value="Mahdia">Mahdia</option>
+                  <option value="La Manouba">La Manouba</option>
+                  <option value="Médenine">Médenine</option>
+                  <option value="Monastir">Monastir</option>
+                  <option value="Nabeul">Nabeul</option>
+                  <option value="Sfax">Sfax</option>
+                  <option value="Sidi Bouzid">Sidi Bouzid</option>
+                  <option value="Siliana">Siliana</option>
+                  <option value="Sousse">Sousse</option>
+                  <option value="Tataouine">Tataouine</option>
+                  <option value="Tozeur">Tozeur</option>
+                  <option value="Tunis">Tunis</option>
+                  <option value="Zaghouan" selected>Zaghouan</option>
+                </select>
+              </div>
+
+              <div class="col-md-6 mb-4">
+                <label for="superficie" class="form-label">Superficie (ha)</label>
+                <input type="text" class="form-control" id="superficie" name="superficie" value="2.5">
+              </div>
+
+              <div class="col-md-6 mb-4">
+                <label for="typeSol" class="form-label">Type de sol</label>
+                <select class="form-select" id="typeSol" name="typeSol">
+                  <option value="">-- Choisir --</option>
+                  <option value="Argileux" selected>Argileux</option>
+                  <option value="Sableux">Sableux</option>
+                  <option value="Calcaire">Calcaire</option>
+                  <option value="Limoneux">Limoneux</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="pied">
+              <a href="mesTerrains.php" class="lien-details">Annuler</a>
+              <button type="submit" class="btn-hero border-0">Enregistrer</button>
+            </div>
+
+          </form>
+        </div>
+
+      </div>
     </section>
 
   </main>

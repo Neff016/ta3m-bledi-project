@@ -26,6 +26,7 @@
 
   <!-- Main CSS File -->
   <link href="assets/css/main.css" rel="stylesheet">
+  <link href="assets/css/terrains.css" rel="stylesheet">
 
   <!-- =======================================================
   * Template Name: Taam Bledi
@@ -71,26 +72,89 @@
   </header>
 
   <main class="main">
-    <section class="container my-5">
-      <h2>Mes terrains</h2>
-<a href="ajouterTerrain.php" class="btn btn-success mb-3">+ Ajouter un terrain</a>
+    <section class="page-terrains">
+      <div class="container">
 
-<table class="table">
-  <thead>
-    <tr><th>Nom</th><th>Localisation</th><th>Superficie (ha)</th><th>Type de sol</th><th>Actions</th></tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Terrain Zaghouan</td><td>Zaghouan</td><td>2.5</td><td>Argileux</td>
-      <td>
-        <a href="detailsTerrain.php">Détails</a> |
-        <a href="modifierTerrain.php">Modifier</a> |
-        <a href="#">Supprimer</a>
-      </td>
-    </tr>
-    <!-- 7ott 2-3 lignes exemples -->
-  </tbody>
-</table>
+        <!-- Bannière -->
+        <div class="hero-terrains">
+          <div>
+            <p class="sur-titre">Agriculture intelligente</p>
+            <h1>Mes terrains</h1>
+          </div>
+          <a href="ajouterTerrain.php" class="btn-hero">Ajouter un terrain</a>
+        </div>
+
+        <!-- Cartes -->
+        <div class="row g-4">
+
+          <div class="col-lg-4 col-md-6">
+            <div class="carte-terrain">
+              <div class="entete">
+                <h3>Terrain Zaghouan</h3>
+                <span class="badge-sol">Argileux</span>
+              </div>
+              <p class="sous-titre">3 récoltes</p>
+              <ul>
+                <li><i class="bi bi-geo-alt"></i> Zaghouan</li>
+                <li><i class="bi bi-rulers"></i> 2.5 ha</li>
+                <li><i class="bi bi-flower1"></i> Blé, Orge</li>
+              </ul>
+              <div class="pied">
+                <a href="detailsTerrain.php" class="lien-details">Voir les détails</a>
+                <span class="actions-mini">
+                  <a href="modifierTerrain.php" title="Modifier"><i class="bi bi-pencil"></i></a>
+                  <a href="#" title="Supprimer"><i class="bi bi-trash"></i></a>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="carte-terrain">
+              <div class="entete">
+                <h3>Terrain Béja</h3>
+                <span class="badge-sol">Calcaire</span>
+              </div>
+              <p class="sous-titre">1 récolte</p>
+              <ul>
+                <li><i class="bi bi-geo-alt"></i> Béja</li>
+                <li><i class="bi bi-rulers"></i> 4 ha</li>
+                <li><i class="bi bi-flower1"></i> Olives</li>
+              </ul>
+              <div class="pied">
+                <a href="detailsTerrain.php" class="lien-details">Voir les détails</a>
+                <span class="actions-mini">
+                  <a href="modifierTerrain.php" title="Modifier"><i class="bi bi-pencil"></i></a>
+                  <a href="#" title="Supprimer"><i class="bi bi-trash"></i></a>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="carte-terrain">
+              <div class="entete">
+                <h3>Terrain Nabeul</h3>
+                <span class="badge-sol">Sableux</span>
+              </div>
+              <p class="sous-titre">Aucune récolte</p>
+              <ul>
+                <li><i class="bi bi-geo-alt"></i> Nabeul</li>
+                <li><i class="bi bi-rulers"></i> 1.2 ha</li>
+                <li><i class="bi bi-flower1"></i> Tomate</li>
+              </ul>
+              <div class="pied">
+                <a href="detailsTerrain.php" class="lien-details">Voir les détails</a>
+                <span class="actions-mini">
+                  <a href="modifierTerrain.php" title="Modifier"><i class="bi bi-pencil"></i></a>
+                  <a href="#" title="Supprimer"><i class="bi bi-trash"></i></a>
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
     </section>
 
   </main>
