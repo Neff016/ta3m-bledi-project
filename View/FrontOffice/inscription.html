@@ -26,6 +26,7 @@
 
   <!-- Main CSS File -->
   <link href="assets/css/main.css" rel="stylesheet">
+  <link href="assets/css/utilisateurs.css" rel="stylesheet">
 
   <!-- =======================================================
   * Template Name: AgriCulture
@@ -54,21 +55,11 @@
           <li><a href="services.html">Our Services</a></li>
           <li><a href="testimonials.html">Testimonials</a></li>
           <li><a href="blog.html">Blog</a></li>
-          <li class="dropdown"><a href="#"><span>Dropdown</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+                    <li class="dropdown"><a href="#"><span>Mon compte</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
             <ul>
-              <li><a href="#">Dropdown 1</a></li>
-              <li class="dropdown"><a href="#"><span>Deep Dropdown</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
-                <ul>
-                  <li><a href="#">Deep Dropdown 1</a></li>
-                  <li><a href="#">Deep Dropdown 2</a></li>
-                  <li><a href="#">Deep Dropdown 3</a></li>
-                  <li><a href="#">Deep Dropdown 4</a></li>
-                  <li><a href="#">Deep Dropdown 5</a></li>
-                </ul>
-              </li>
-              <li><a href="#">Dropdown 2</a></li>
-              <li><a href="#">Dropdown 3</a></li>
-              <li><a href="#">Dropdown 4</a></li>
+              <li><a href="profil.html">Mon profil</a></li>
+              <li><a href="connexion.html">Connexion</a></li>
+              <li><a href="connexion.html">Déconnexion</a></li>
             </ul>
           </li>
           <li><a href="contact.html">Contact</a></li>
@@ -79,17 +70,13 @@
     </div>
   </header>
 <main class="main">
-
-  <!-- Page Title -->
-<div class="page-title dark-background">
-  <div class="container position-relative">
-    <h1>Inscription</h1>
-  </div>
-</div>
-
-<!-- Formulaire de l'inscription-->
-<section class="section">
-  <div class="container" style="max-width: 550px;">
+ <section class="ub-page">
+  <div class="container">
+    <div class="ub-hero">
+      <span class="ub-hero-label">Espace utilisateur</span>
+      <h1>Inscription</h1>
+    </div>
+    <div class="ub-card">
     <form id="formInscription">
       <div class="row">
         <div class="col-md-6 mb-3">
@@ -117,11 +104,12 @@
         <label for="confirmation" class="form-label">Confirmer le mot de passe</label>
         <input type="password" class="form-control" id="confirmation" name="confirmation">
       </div>
-      <button type="submit" class="btn btn-success w-100">S'inscrire</button>
+      <button type="submit" class="ub-btn">S'inscrire</button>
       <p class="text-center mt-3">
         Déjà un compte ? <a href="connexion.html">Se connecter</a>
       </p>
     </form>
+    </div>
   </div>
 </section>
 </main>
