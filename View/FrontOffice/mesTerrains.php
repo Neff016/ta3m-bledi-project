@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Index - AgriCulture Bootstrap Template</title>
+  <title>Taam Bledi</title>
   <meta name="description" content="">
   <meta name="keywords" content="">
 
@@ -28,7 +28,7 @@
   <link href="assets/css/main.css" rel="stylesheet">
 
   <!-- =======================================================
-  * Template Name: AgriCulture
+  * Template Name: Taam Bledi
   * Template URL: https://bootstrapmade.com/agriculture-bootstrap-website-template/
   * Updated: Aug 07 2024 with Bootstrap v5.3.3
   * Author: BootstrapMade.com
@@ -43,8 +43,8 @@
 
       <a href="index.html" class="logo d-flex align-items-center">
         <!-- Uncomment the line below if you also wish to use an image logo -->
-        <img src="assets/img/logo.png" alt="AgriCulture">
-        <!-- <h1 class="sitename">AgriCulture</h1>  -->
+        <img src="assets/img/logo.png" alt="Taam Bledi">
+        <!-- <h1 class="sitename">Taam Bledi</h1>  -->
       </a>
 
       <nav id="navmenu" class="navmenu">
@@ -102,7 +102,7 @@
         <div class="row gy-4">
           <div class="col-lg-4 col-md-6 footer-about">
             <a href="index.html" class="logo d-flex align-items-center">
-              <span class="sitename">AgriCulture</span>
+              <span class="sitename">Taam Bledi</span>
             </a>
             <div class="footer-contact pt-3">
               <p>A108 Adam Street</p>
