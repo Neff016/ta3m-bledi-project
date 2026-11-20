@@ -1,10 +1,20 @@
+<?php
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/BadgeController.php';
+
+$idUtilisateur = requireLogin();
+$badges        = (new BadgeController())->badgesDeUtilisateur($idUtilisateur);
+
+$obtenus = array_filter($badges, fn($b) => $b['dateAttribution'] !== null);
+$points  = array_sum(array_map(fn($b) => (int) $b['points'], $obtenus));
+?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>About - AgriCulture Bootstrap Template</title>
+  <title>Taam Bledi - Mes badges</title>
   <meta name="description" content="">
   <meta name="keywords" content="">
 
@@ -51,15 +61,17 @@
       <nav id="navmenu" class="navmenu">
         <ul>
           <li><a href="index.html">Home</a></li>
-          <li><a href="about.html" class="active">About Us</a></li>
+          <li><a href="about.html" >About Us</a></li>
           <li><a href="services.html">Our Services</a></li>
           <li><a href="testimonials.html">Testimonials</a></li>
           <li><a href="blog.html">Blog</a></li>
                     <li class="dropdown"><a href="#"><span>Mon compte</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
             <ul>
-              <li><a href="profil.html">Mon profil</a></li>
-              <li><a href="connexion.html">Connexion</a></li>
-              <li><a href="connexion.html">Déconnexion</a></li>
+              <li><a href="profil.php">Mon profil</a></li>
+              <li><a href="mesBadges.php">Mes badges</a></li>
+              <li><a href="connexion.php">Connexion</a></li>
+              <li><a href="inscription.php">Inscription</a></li>
+              <li><a href="deconnexion.php">Déconnexion</a></li>
             </ul>
           </li>
           <li><a href="contact.html">Contact</a></li>
@@ -69,50 +81,55 @@
 
     </div>
   </header>
-<main class="main">
- <section class="ub-page">
-  <div class="container">
-    <div class="ub-hero">
-      <span class="ub-hero-label">Espace utilisateur</span>
-      <h1>Inscription</h1>
-    </div>
-    <div class="ub-card">
-    <form id="formInscription">
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <label for="nom" class="form-label">Nom</label>
-          <input type="text" class="form-control" id="nom" name="nom">
+
+  <main class="main">
+    <section class="ub-page">
+      <div class="container">
+
+        <div class="ub-hero">
+          <span class="ub-hero-label">Espace utilisateur</span>
+          <h1>Mes badges</h1>
         </div>
-        <div class="col-md-6 mb-3">
-          <label for="prenom" class="form-label">Prénom</label>
-          <input type="text" class="form-control" id="prenom" name="prenom">
-        </div>
+
+        <p class="text-center mb-5">
+          <?php if (count($obtenus) === 0): ?>
+            Vous n'avez pas encore de badge. Ajoutez vos premières plantations pour en gagner !
+          <?php else: ?>
+            Vous avez obtenu <strong><?= count($obtenus) ?> badge<?= count($obtenus) > 1 ? 's' : '' ?></strong>
+            (<?= $points ?> points). Continuez comme ça !
+          <?php endif; ?>
+        </p>
+
+        <?php if (empty($badges)): ?>
+          <div class="ub-card text-center">Aucun badge n'existe encore.</div>
+        <?php else: ?>
+          <div class="row g-4">
+            <?php foreach ($badges as $b): ?>
+              <?php $obtenu = $b['dateAttribution'] !== null; ?>
+              <div class="col-md-4 col-lg-3">
+                <div class="ub-badge <?= $obtenu ? '' : 'ub-badge-verrouille' ?>">
+                  <?php if (!empty($b['icone'])): ?>
+                    <img src="assets/img/uploads/badges/<?= e($b['icone']) ?>" alt="<?= e($b['nom']) ?>" class="ub-badge-icone">
+                  <?php else: ?>
+                    <i class="bi <?= $obtenu ? 'bi-award-fill' : 'bi-lock' ?> ub-badge-defaut"></i>
+                  <?php endif; ?>
+                  <h5 class="mt-3"><?= e($b['nom']) ?></h5>
+                  <p><?= e($b['description']) ?></p>
+                  <span class="ub-points"><?= e($b['points']) ?> pts</span>
+                  <small class="d-block text-muted mt-2">
+                    <?= $obtenu
+                        ? 'Obtenu le ' . e(date('d/m/Y', strtotime($b['dateAttribution'])))
+                        : 'Pas encore obtenu : ' . e($b['critere']) ?>
+                  </small>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+
       </div>
-      <div class="mb-3">
-        <label for="email" class="form-label">Email</label>
-        <input type="email" class="form-control" id="email" name="email" placeholder="exemple@mail.com">
-      </div>
-      <div class="mb-3">
-        <label for="telephone" class="form-label">Téléphone</label>
-        <input type="tel" class="form-control" id="telephone" name="telephone" placeholder="12345678">
-      </div>
-      <div class="mb-3">
-        <label for="motDePasse" class="form-label">Mot de passe</label>
-        <input type="password" class="form-control" id="motDePasse" name="motDePasse">
-      </div>
-      <div class="mb-3">
-        <label for="confirmation" class="form-label">Confirmer le mot de passe</label>
-        <input type="password" class="form-control" id="confirmation" name="confirmation">
-      </div>
-      <button type="submit" class="ub-btn">S'inscrire</button>
-      <p class="text-center mt-3">
-        Déjà un compte ? <a href="connexion.html">Se connecter</a>
-      </p>
-    </form>
-    </div>
-  </div>
-</section>
-</main>
+    </section>
+  </main>
 
   <footer id="footer" class="footer dark-background">
 

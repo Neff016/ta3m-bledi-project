@@ -1,10 +1,54 @@
+<?php
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/UtilisateurController.php';
+
+if (!empty($_SESSION['user_id'])) {
+    header('Location: profil.php');
+    exit;
+}
+
+$utilisateurC = new UtilisateurController();
+$erreurs      = [];
+$valeurs      = ['nom' => '', 'prenom' => '', 'email' => '', 'telephone' => ''];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $valeurs = [
+        'nom'       => trim($_POST['nom'] ?? ''),
+        'prenom'    => trim($_POST['prenom'] ?? ''),
+        'email'     => trim($_POST['email'] ?? ''),
+        'telephone' => trim($_POST['telephone'] ?? ''),
+    ];
+    $motDePasse   = $_POST['motDePasse'] ?? '';
+    $confirmation = $_POST['confirmation'] ?? '';
+
+    // Contrôle de saisie côté serveur
+    $erreurs = $utilisateurC->validateInfos($valeurs)
+             + $utilisateurC->validateMotDePasse($motDePasse, $confirmation);
+
+    if (empty($erreurs)) {
+        $utilisateur = new Utilisateur(
+            $valeurs['nom'],
+            $valeurs['prenom'],
+            $valeurs['email'],
+            $valeurs['telephone'],
+            password_hash($motDePasse, PASSWORD_DEFAULT),   // jamais en clair
+            'AGRICULTEUR',
+            'ACTIF'
+        );
+        $utilisateurC->addUtilisateur($utilisateur);
+        setFlash('Compte créé avec succès. Vous pouvez vous connecter.');
+        header('Location: connexion.php');
+        exit;
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>About - AgriCulture Bootstrap Template</title>
+  <title>Taam Bledi - Inscription</title>
   <meta name="description" content="">
   <meta name="keywords" content="">
 
@@ -26,6 +70,7 @@
 
   <!-- Main CSS File -->
   <link href="assets/css/main.css" rel="stylesheet">
+  <link href="assets/css/utilisateurs.css" rel="stylesheet">
 
   <!-- =======================================================
   * Template Name: AgriCulture
@@ -50,100 +95,89 @@
       <nav id="navmenu" class="navmenu">
         <ul>
           <li><a href="index.html">Home</a></li>
-          <li><a href="about.html" class="active">About Us</a></li>
+          <li><a href="about.html">About Us</a></li>
           <li><a href="services.html">Our Services</a></li>
           <li><a href="testimonials.html">Testimonials</a></li>
           <li><a href="blog.html">Blog</a></li>
-          <li class="dropdown"><a href="#"><span>Dropdown</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+                    <li class="dropdown"><a href="#"><span>Mon compte</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
             <ul>
-              <li><a href="#">Dropdown 1</a></li>
-              <li class="dropdown"><a href="#"><span>Deep Dropdown</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
-                <ul>
-                  <li><a href="#">Deep Dropdown 1</a></li>
-                  <li><a href="#">Deep Dropdown 2</a></li>
-                  <li><a href="#">Deep Dropdown 3</a></li>
-                  <li><a href="#">Deep Dropdown 4</a></li>
-                  <li><a href="#">Deep Dropdown 5</a></li>
-                </ul>
-              </li>
-              <li><a href="#">Dropdown 2</a></li>
-              <li><a href="#">Dropdown 3</a></li>
-              <li><a href="#">Dropdown 4</a></li>
+              <li><a href="profil.php">Mon profil</a></li>
+              <li><a href="mesBadges.php">Mes badges</a></li>
+              <li><a href="connexion.php">Connexion</a></li>
+              <li><a href="inscription.php">Inscription</a></li>
+              <li><a href="deconnexion.php">Déconnexion</a></li>
             </ul>
           </li>
           <li><a href="contact.html">Contact</a></li>
-          <li><a href="connexion.html">Connexion</a></li>
         </ul>
         <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
       </nav>
 
     </div>
   </header>
-<main class="main">
 
-  <!-- Page Title -->
-<div class="page-title dark-background">
-  <div class="container position-relative">
-    <h1>Mes badges</h1>
-  </div>
-</div>
+  <main class="main">
+    <section class="ub-page">
+      <div class="container">
 
-<!-- Formulaire des Badges -->
-
-</main>
-<section class="section">
-  <div class="container">
-    <p class="text-center mb-5">Vous avez obtenu <strong>3 badges</strong>. Continuez comme ça !</p>
-    <div class="row g-4">
-
-      <div class="col-md-4">
-        <div class="card text-center h-100 shadow-sm">
-          <div class="card-body">
-            <i class="bi bi-flower1 text-success" style="font-size: 3rem;"></i>
-            <h5 class="card-title mt-3">Premier jardinier</h5>
-            <p class="card-text">Première plantation ajoutée.</p>
-            <small class="text-muted">Obtenu le 10/11/2026</small>
-          </div>
+        <div class="ub-hero">
+          <span class="ub-hero-label">Espace utilisateur</span>
+          <h1>Inscription</h1>
         </div>
-      </div>
 
-      <div class="col-md-4">
-        <div class="card text-center h-100 shadow-sm">
-          <div class="card-body">
-            <i class="bi bi-arrow-left-right text-success" style="font-size: 3rem;"></i>
-            <h5 class="card-title mt-3">Échangeur solidaire</h5>
-            <p class="card-text">Premier échange de récoltes réalisé.</p>
-            <small class="text-muted">Obtenu le 12/11/2026</small>
-          </div>
+        <div class="ub-card">
+          <form id="formInscription" action="" method="POST" novalidate>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="nom" class="form-label">Nom</label>
+                <input type="text" class="form-control <?= isset($erreurs['nom']) ? 'is-invalid' : '' ?>"
+                       id="nom" name="nom" value="<?= e($valeurs['nom']) ?>">
+                <div class="ub-erreur" id="erreur-nom"><?= e($erreurs['nom'] ?? '') ?></div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="prenom" class="form-label">Prénom</label>
+                <input type="text" class="form-control <?= isset($erreurs['prenom']) ? 'is-invalid' : '' ?>"
+                       id="prenom" name="prenom" value="<?= e($valeurs['prenom']) ?>">
+                <div class="ub-erreur" id="erreur-prenom"><?= e($erreurs['prenom'] ?? '') ?></div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input type="text" class="form-control <?= isset($erreurs['email']) ? 'is-invalid' : '' ?>"
+                     id="email" name="email" value="<?= e($valeurs['email']) ?>" placeholder="exemple@mail.com">
+              <div class="ub-erreur" id="erreur-email"><?= e($erreurs['email'] ?? '') ?></div>
+            </div>
+            <div class="mb-3">
+              <label for="telephone" class="form-label">Téléphone</label>
+              <input type="text" class="form-control <?= isset($erreurs['telephone']) ? 'is-invalid' : '' ?>"
+                     id="telephone" name="telephone" value="<?= e($valeurs['telephone']) ?>" placeholder="12345678">
+              <div class="ub-erreur" id="erreur-telephone"><?= e($erreurs['telephone'] ?? '') ?></div>
+            </div>
+            <div class="mb-3">
+              <label for="motDePasse" class="form-label">Mot de passe</label>
+              <input type="password" class="form-control <?= isset($erreurs['motDePasse']) ? 'is-invalid' : '' ?>"
+                     id="motDePasse" name="motDePasse">
+              <small class="text-muted">8 caractères minimum, avec au moins une lettre et un chiffre.</small>
+              <div class="ub-erreur" id="erreur-motDePasse"><?= e($erreurs['motDePasse'] ?? '') ?></div>
+            </div>
+            <div class="mb-3">
+              <label for="confirmation" class="form-label">Confirmer le mot de passe</label>
+              <input type="password" class="form-control <?= isset($erreurs['confirmation']) ? 'is-invalid' : '' ?>"
+                     id="confirmation" name="confirmation">
+              <div class="ub-erreur" id="erreur-confirmation"><?= e($erreurs['confirmation'] ?? '') ?></div>
+            </div>
+            <button type="submit" class="ub-btn">S'inscrire</button>
+            <p class="text-center mt-3 mb-0">
+              Déjà un compte ? <a href="connexion.php">Se connecter</a>
+            </p>
+          </form>
         </div>
-      </div>
 
-      <div class="col-md-4">
-        <div class="card text-center h-100 shadow-sm">
-          <div class="card-body">
-            <i class="bi bi-mortarboard text-success" style="font-size: 3rem;"></i>
-            <h5 class="card-title mt-3">Apprenti curieux</h5>
-            <p class="card-text">Participation à un atelier.</p>
-            <small class="text-muted">Obtenu le 14/11/2026</small>
-          </div>
-        </div>
       </div>
+    </section>
+    <script src="assets/js/validation-utilisateurs.js"></script>
+  </main>
 
-      <!-- Badge pas encore obtenu (grisé) -->
-      <div class="col-md-4">
-        <div class="card text-center h-100 shadow-sm" style="opacity: 0.4;">
-          <div class="card-body">
-            <i class="bi bi-trophy" style="font-size: 3rem;"></i>
-            <h5 class="card-title mt-3">Gardien des semences</h5>
-            <p class="card-text">Adopter 5 graines.</p>
-            <small class="text-muted">Pas encore obtenu</small>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</section>
   <footer id="footer" class="footer dark-background">
 
     <div class="footer-top">
