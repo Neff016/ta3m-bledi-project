@@ -1,3 +1,24 @@
+<?php
+/* =====================================================================
+ *  PARTIE 1 : à coller TOUT EN HAUT de BackOffice/dashboard.php
+ *             (ligne 1, AVANT <!DOCTYPE html>)
+ * ===================================================================== */
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/TerrainController.php';
+require_once __DIR__ . '/../../Controller/RecolteController.php';
+
+requireAdmin();
+
+$terrainC = new TerrainController();
+$recolteC = new RecolteController();
+
+$nbTerrains      = $terrainC->countTerrains();
+$nbRecoltes      = $recolteC->countRecoltes();
+$superficieTotal = $terrainC->sumSuperficie();
+$nbAgriculteurs  = $terrainC->countAgriculteurs();
+$parWilaya       = $terrainC->terrainsParWilaya();
+$dernieres       = $recolteC->dernieresRecoltes(5);
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -379,13 +400,11 @@
                 </nav>
                 <!-- End of Topbar -->
 
-                <!-- Begin Page Content -->
+                <!-- /.container-fluid -->
                 <div class="container-fluid">
 
-                    <!-- Page Heading -->
-                                        <h1 class="h3 mb-4 text-gray-800">Statistiques Terrains &amp; Récoltes</h1>
+                    <h1 class="h3 mb-4 text-gray-800">Statistiques Terrains &amp; Récoltes</h1>
 
-                    <!-- Cartes -->
                     <div class="row">
 
                         <div class="col-xl-3 col-md-6 mb-4">
@@ -394,7 +413,7 @@
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
                                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Terrains</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">3</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?= e($nbTerrains) ?></div>
                                         </div>
                                         <div class="col-auto"><i class="fas fa-map-marked-alt fa-2x text-gray-300"></i></div>
                                     </div>
@@ -408,7 +427,7 @@
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
                                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Récoltes</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">4</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?= e($nbRecoltes) ?></div>
                                         </div>
                                         <div class="col-auto"><i class="fas fa-seedling fa-2x text-gray-300"></i></div>
                                     </div>
@@ -422,7 +441,7 @@
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
                                             <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Superficie totale</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">7.7 ha</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?= e(number_format($superficieTotal, 2, ',', ' ')) ?> ha</div>
                                         </div>
                                         <div class="col-auto"><i class="fas fa-ruler-combined fa-2x text-gray-300"></i></div>
                                     </div>
@@ -435,8 +454,8 @@
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Agriculteurs</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">3</div>
+                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Agriculteurs actifs</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?= e($nbAgriculteurs) ?></div>
                                         </div>
                                         <div class="col-auto"><i class="fas fa-users fa-2x text-gray-300"></i></div>
                                     </div>
@@ -448,7 +467,6 @@
 
                     <div class="row">
 
-                        <!-- Terrains par wilaya -->
                         <div class="col-lg-6 mb-4">
                             <div class="card shadow mb-4">
                                 <div class="card-header py-3">
@@ -458,16 +476,22 @@
                                     <table class="table mb-0">
                                         <thead><tr><th>Wilaya</th><th>Nb terrains</th><th>Superficie (ha)</th></tr></thead>
                                         <tbody>
-                                            <tr><td>Zaghouan</td><td>1</td><td>2.5</td></tr>
-                                            <tr><td>Béja</td><td>1</td><td>4</td></tr>
-                                            <tr><td>Nabeul</td><td>1</td><td>1.2</td></tr>
+                                            <?php if (empty($parWilaya)): ?>
+                                                <tr><td colspan="3" class="text-center">Aucune donnée.</td></tr>
+                                            <?php endif; ?>
+                                            <?php foreach ($parWilaya as $w): ?>
+                                                <tr>
+                                                    <td><?= e($w['localisation']) ?></td>
+                                                    <td><?= e($w['nb']) ?></td>
+                                                    <td><?= e($w['superficie']) ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Dernières récoltes -->
                         <div class="col-lg-6 mb-4">
                             <div class="card shadow mb-4">
                                 <div class="card-header py-3">
@@ -477,9 +501,16 @@
                                     <table class="table mb-0">
                                         <thead><tr><th>Culture</th><th>Terrain</th><th>Date</th></tr></thead>
                                         <tbody>
-                                            <tr><td>Olives</td><td>Terrain Béja</td><td>20/11/2026</td></tr>
-                                            <tr><td>Orge</td><td>Terrain Zaghouan</td><td>02/07/2026</td></tr>
-                                            <tr><td>Blé</td><td>Terrain Zaghouan</td><td>15/06/2026</td></tr>
+                                            <?php if (empty($dernieres)): ?>
+                                                <tr><td colspan="3" class="text-center">Aucune récolte.</td></tr>
+                                            <?php endif; ?>
+                                            <?php foreach ($dernieres as $r): ?>
+                                                <tr>
+                                                    <td><?= e($r['culture']) ?></td>
+                                                    <td><?= e($r['terrainNom']) ?></td>
+                                                    <td><?= e(date('d/m/Y', strtotime($r['dateRecolte']))) ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
                                         </tbody>
                                     </table>
                                 </div>
@@ -487,9 +518,7 @@
                         </div>
 
                     </div>
-
                 </div>
-                <!-- /.container-fluid -->
 
             </div>
             <!-- End of Main Content -->

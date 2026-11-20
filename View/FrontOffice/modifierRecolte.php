@@ -1,3 +1,67 @@
+<?php
+/* =====================================================================
+ *  PARTIE 1 : à coller TOUT EN HAUT de modifierRecolte.php
+ *             (ligne 1, AVANT <!DOCTYPE html>)
+ * ===================================================================== */
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/TerrainController.php';
+require_once __DIR__ . '/../../Controller/RecolteController.php';
+
+$idUtilisateur = requireLogin();
+$recolteC      = new RecolteController();
+$terrains      = (new TerrainController())->listTerrainsByUser($idUtilisateur);
+
+// L'id arrive dans l'URL : modifierRecolte.php?id=5
+$id      = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+$recolte = $id ? $recolteC->getRecolteOfUser($id, $idUtilisateur) : false;
+
+if (!$recolte) {
+    setFlash("Cette récolte n'existe pas ou ne vous appartient pas.", 'danger');
+    header('Location: mesRecoltes.php');
+    exit;
+}
+
+$erreurs = [];
+$valeurs = [
+    'idTerrain'      => $recolte['idTerrain'],
+    'culture'        => $recolte['culture'],
+    'datePlantation' => $recolte['datePlantation'],
+    'dateRecolte'    => $recolte['dateRecolte'],
+    'quantite'       => $recolte['quantite'],
+    'unite'          => $recolte['unite'],
+];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $valeurs = [
+        'idTerrain'      => $_POST['idTerrain'] ?? '',
+        'culture'        => trim($_POST['culture'] ?? ''),
+        'datePlantation' => $_POST['datePlantation'] ?? '',
+        'dateRecolte'    => $_POST['dateRecolte'] ?? '',
+        'quantite'       => trim($_POST['quantite'] ?? ''),
+        'unite'          => $_POST['unite'] ?? '',
+    ];
+
+    $erreurs = $recolteC->validateRecolte($valeurs, $idUtilisateur);
+
+    if (empty($erreurs)) {
+        $recolteModifiee = new Recolte(
+            $valeurs['culture'],
+            $valeurs['datePlantation'],
+            $valeurs['dateRecolte'],
+            (float) str_replace(',', '.', $valeurs['quantite']),
+            $valeurs['unite'],
+            (int) $valeurs['idTerrain'],
+            $id
+        );
+        $recolteC->updateRecolte($recolteModifiee);
+        setFlash('Récolte modifiée avec succès.');
+        header('Location: mesRecoltes.php');
+        exit;
+    }
+}
+
+$texteBouton = 'Enregistrer';
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -71,52 +135,24 @@
   </header>
 
   <main class="main">
-         <section class="container my-5">
-      <h2 class="mb-4">Modifier la récolte</h2>
+    <section class="page-terrains">
+      <div class="container">
 
-      <form action="" method="POST">
-
-        <input type="hidden" name="id" value="1">
-
-        <div class="mb-3">
-          <label for="idTerrain" class="form-label">Terrain</label>
-          <select class="form-select" id="idTerrain" name="idTerrain">
-            <option value="">-- Choisir un terrain --</option>
-            <option value="1" selected>Terrain Zaghouan</option>
-            <option value="2">Terrain Béja</option>
-            <option value="3">Terrain Nabeul</option>
-          </select>
-        </div>
-
-        <div class="mb-3">
-          <label for="culture" class="form-label">Culture</label>
-          <input type="text" class="form-control" id="culture" name="culture" value="Blé">
-        </div>
-
-        <div class="mb-3">
-          <label for="dateRecolte" class="form-label">Date de récolte</label>
-          <input type="date" class="form-control" id="dateRecolte" name="dateRecolte" value="2026-06-15">
-        </div>
-
-        <div class="row">
-          <div class="col-md-8 mb-3">
-            <label for="quantite" class="form-label">Quantité</label>
-            <input type="text" class="form-control" id="quantite" name="quantite" value="800">
+        <div class="hero-terrains">
+          <div>
+            <p class="sur-titre">Agriculture intelligente</p>
+            <h1>Modifier la récolte</h1>
           </div>
-          <div class="col-md-4 mb-3">
-            <label for="unite" class="form-label">Unité</label>
-            <select class="form-select" id="unite" name="unite">
-              <option value="kg" selected>kg</option>
-              <option value="tonne">tonne</option>
-            </select>
-          </div>
+          <a href="mesRecoltes.php" class="btn-hero">Retour à mes récoltes</a>
         </div>
 
-        <button type="submit" class="btn btn-success">Enregistrer</button>
-        <a href="mesRecoltes.php" class="btn btn-secondary">Annuler</a>
+        <div class="carte-terrain">
+          <?php require __DIR__ . '/partials/formRecolte.php'; ?>
+        </div>
 
-      </form>
+      </div>
     </section>
+
     
 
   </main>

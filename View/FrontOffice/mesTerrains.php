@@ -1,3 +1,16 @@
+<?php
+/* =====================================================================
+ *  PARTIE 1 : à coller TOUT EN HAUT de mesTerrains.php
+ *             (ligne 1, AVANT <!DOCTYPE html>)
+ * ===================================================================== */
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/TerrainController.php';
+
+$idUtilisateur = requireLogin();                 // pas connecté → page de connexion
+$terrainC      = new TerrainController();
+$terrains      = $terrainC->listTerrainsByUser($idUtilisateur);   // SEULEMENT ses terrains
+$flash         = getFlash();
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -72,10 +85,9 @@
   </header>
 
   <main class="main">
-    <section class="page-terrains">
+ <section class="page-terrains">
       <div class="container">
 
-        <!-- Bannière -->
         <div class="hero-terrains">
           <div>
             <p class="sur-titre">Agriculture intelligente</p>
@@ -84,76 +96,53 @@
           <a href="ajouterTerrain.php" class="btn-hero">Ajouter un terrain</a>
         </div>
 
-        <!-- Cartes -->
-        <div class="row g-4">
+        <?php if ($flash): ?>
+          <div class="alert alert-<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
+        <?php endif; ?>
 
-          <div class="col-lg-4 col-md-6">
-            <div class="carte-terrain">
-              <div class="entete">
-                <h3>Terrain Zaghouan</h3>
-                <span class="badge-sol">Argileux</span>
-              </div>
-              <p class="sous-titre">3 récoltes</p>
-              <ul>
-                <li><i class="bi bi-geo-alt"></i> Zaghouan</li>
-                <li><i class="bi bi-rulers"></i> 2.5 ha</li>
-                <li><i class="bi bi-flower1"></i> Blé, Orge</li>
-              </ul>
-              <div class="pied">
-                <a href="detailsTerrain.php" class="lien-details">Voir les détails</a>
-                <span class="actions-mini">
-                  <a href="modifierTerrain.php" title="Modifier"><i class="bi bi-pencil"></i></a>
-                  <a href="#" title="Supprimer"><i class="bi bi-trash"></i></a>
-                </span>
-              </div>
-            </div>
+        <?php if (empty($terrains)): ?>
+          <div class="carte-terrain carte-vide">
+            <i class="bi bi-geo-alt"></i>
+            <p class="mt-3 mb-4">Vous n'avez encore aucun terrain.</p>
+            <div><a href="ajouterTerrain.php" class="btn-hero">Ajouter mon premier terrain</a></div>
           </div>
-
-          <div class="col-lg-4 col-md-6">
-            <div class="carte-terrain">
-              <div class="entete">
-                <h3>Terrain Béja</h3>
-                <span class="badge-sol">Calcaire</span>
+        <?php else: ?>
+          <div class="row g-4">
+            <?php foreach ($terrains as $t): ?>
+              <div class="col-lg-4 col-md-6">
+                <div class="carte-terrain">
+                  <div class="entete">
+                    <h3><?= e($t['nom']) ?></h3>
+                    <span class="badge-sol"><?= e($t['typeSol']) ?></span>
+                  </div>
+                  <p class="sous-titre">
+                    <?php if ((int) $t['nbRecoltes'] === 0): ?>
+                      Aucune récolte
+                    <?php else: ?>
+                      <?= e($t['nbRecoltes']) ?> récolte<?= $t['nbRecoltes'] > 1 ? 's' : '' ?>
+                    <?php endif; ?>
+                  </p>
+                  <ul>
+                    <li><i class="bi bi-geo-alt"></i> <?= e($t['localisation']) ?></li>
+                    <li><i class="bi bi-rulers"></i> <?= e($t['superficie']) ?> ha</li>
+                  </ul>
+                  <div class="pied">
+                    <a href="detailsTerrain.php?id=<?= e($t['id']) ?>" class="lien-details">Voir les détails</a>
+                    <span class="actions-mini">
+                      <a href="modifierTerrain.php?id=<?= e($t['id']) ?>" title="Modifier"><i class="bi bi-pencil"></i></a>
+                      <form action="supprimerTerrain.php" method="POST" class="d-inline"
+                            onsubmit="return confirm('Supprimer ce terrain et toutes ses récoltes ?');">
+                        <input type="hidden" name="id" value="<?= e($t['id']) ?>">
+                        <button type="submit" class="btn-icone danger" title="Supprimer"><i class="bi bi-trash"></i></button>
+                      </form>
+                    </span>
+                  </div>
+                </div>
               </div>
-              <p class="sous-titre">1 récolte</p>
-              <ul>
-                <li><i class="bi bi-geo-alt"></i> Béja</li>
-                <li><i class="bi bi-rulers"></i> 4 ha</li>
-                <li><i class="bi bi-flower1"></i> Olives</li>
-              </ul>
-              <div class="pied">
-                <a href="detailsTerrain.php" class="lien-details">Voir les détails</a>
-                <span class="actions-mini">
-                  <a href="modifierTerrain.php" title="Modifier"><i class="bi bi-pencil"></i></a>
-                  <a href="#" title="Supprimer"><i class="bi bi-trash"></i></a>
-                </span>
-              </div>
-            </div>
+            <?php endforeach; ?>
           </div>
+        <?php endif; ?>
 
-          <div class="col-lg-4 col-md-6">
-            <div class="carte-terrain">
-              <div class="entete">
-                <h3>Terrain Nabeul</h3>
-                <span class="badge-sol">Sableux</span>
-              </div>
-              <p class="sous-titre">Aucune récolte</p>
-              <ul>
-                <li><i class="bi bi-geo-alt"></i> Nabeul</li>
-                <li><i class="bi bi-rulers"></i> 1.2 ha</li>
-                <li><i class="bi bi-flower1"></i> Tomate</li>
-              </ul>
-              <div class="pied">
-                <a href="detailsTerrain.php" class="lien-details">Voir les détails</a>
-                <span class="actions-mini">
-                  <a href="modifierTerrain.php" title="Modifier"><i class="bi bi-pencil"></i></a>
-                  <a href="#" title="Supprimer"><i class="bi bi-trash"></i></a>
-                </span>
-              </div>
-            </div>
-          </div>
-
-        </div>
       </div>
     </section>
 

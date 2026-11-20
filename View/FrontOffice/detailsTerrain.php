@@ -1,3 +1,28 @@
+<?php
+/* =====================================================================
+ *  PARTIE 1 : à coller TOUT EN HAUT de detailsTerrain.php
+ *             (ligne 1, AVANT <!DOCTYPE html>)
+ * ===================================================================== */
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/TerrainController.php';
+require_once __DIR__ . '/../../Controller/RecolteController.php';
+
+$idUtilisateur = requireLogin();
+$terrainC      = new TerrainController();
+$recolteC      = new RecolteController();
+
+$id      = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+$terrain = $id ? $terrainC->getTerrainOfUser($id, $idUtilisateur) : false;
+
+if (!$terrain) {
+    setFlash("Ce terrain n'existe pas ou ne vous appartient pas.", 'danger');
+    header('Location: mesTerrains.php');
+    exit;
+}
+
+$recoltes = $recolteC->listRecoltesByTerrain($id);
+$flash    = getFlash();
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -71,72 +96,91 @@
   </header>
 
   <main class="main">
-    <section class="container my-5">
-     <!-- ===== PARTIE 1 : INFOS DU TERRAIN ===== -->
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <h2>Détails du terrain</h2>
-  <a href="mesTerrains.php" class="btn btn-outline-secondary">← Retour à mes terrains</a>
-</div>
+    <section class="page-terrains">
+      <div class="container">
 
-<div class="card mb-5">
-  <div class="card-body">
-    <h3 class="card-title">Terrain Zaghouan</h3>
-    <p class="mb-1"><b>Localisation :</b> Zaghouan</p>
-    <p class="mb-1"><b>Superficie :</b> 2.5 ha</p>
-    <p class="mb-3"><b>Type de sol :</b> Argileux</p>
-    <a href="modifierTerrain.php" class="btn btn-warning">Modifier</a>
-    <a href="#" class="btn btn-danger">Supprimer</a>
-  </div>
-</div>
+        <div class="hero-terrains">
+          <div>
+            <p class="sur-titre">Détails du terrain</p>
+            <h1><?= e($terrain['nom']) ?></h1>
+          </div>
+          <a href="mesTerrains.php" class="btn-hero">Retour à mes terrains</a>
+        </div>
 
-<!-- ===== PARTIE 2 : LES RÉCOLTES DE CE TERRAIN ===== -->
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h3>Récoltes de ce terrain</h3>
-  <a href="ajouterRecolte.php" class="btn btn-success">+ Ajouter une récolte</a>
-</div>
+        <?php if ($flash): ?>
+          <div class="alert alert-<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
+        <?php endif; ?>
 
-<table class="table table-bordered table-hover">
-  <thead class="table-light">
-    <tr>
-      <th>Culture</th>
-      <th>Date de récolte</th>
-      <th>Quantité</th>
-      <th>Unité</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Blé</td>
-      <td>15/06/2026</td>
-      <td>800</td>
-      <td>kg</td>
-      <td>
-        <a href="modifierRecolte.php" class="btn btn-sm btn-warning">Modifier</a>
-        <a href="#" class="btn btn-sm btn-danger">Supprimer</a>
-      </td>
-    </tr>
-    <tr>
-      <td>Orge</td>
-      <td>02/07/2026</td>
-      <td>1.2</td>
-      <td>tonne</td>
-      <td>
-        <a href="modifierRecolte.php" class="btn btn-sm btn-warning">Modifier</a>
-        <a href="#" class="btn btn-sm btn-danger">Supprimer</a>
-      </td>
-    </tr>
+        <div class="row g-4">
 
-    <!-- Ken terrain ma 3andou 7atta récolte, el ligne hedhi tetla3 blaset el lignes lfou9
-         (ba3d fel PHP nkhalliwha tetla3 wa7dha) -->
-    <!--
-    <tr>
-      <td colspan="5" class="text-center text-muted">Aucune récolte pour ce terrain.</td>
-    </tr>
-    -->
-  </tbody>
-</table>
+          <!-- Informations du terrain -->
+          <div class="col-lg-4">
+            <div class="carte-terrain">
+              <div class="entete">
+                <h3>Informations</h3>
+                <span class="badge-sol"><?= e($terrain['typeSol']) ?></span>
+              </div>
+              <ul class="mt-4">
+                <li><i class="bi bi-geo-alt"></i> <?= e($terrain['localisation']) ?></li>
+                <li><i class="bi bi-rulers"></i> <?= e($terrain['superficie']) ?> ha</li>
+                <li><i class="bi bi-basket"></i> <?= count($recoltes) ?> récolte(s)</li>
+              </ul>
+              <div class="pied">
+                <a href="modifierTerrain.php?id=<?= e($terrain['id']) ?>" class="lien-details">Modifier</a>
+                <form action="supprimerTerrain.php" method="POST" class="d-inline"
+                      onsubmit="return confirm('Supprimer ce terrain et toutes ses récoltes ?');">
+                  <input type="hidden" name="id" value="<?= e($terrain['id']) ?>">
+                  <button type="submit" class="btn-icone danger" title="Supprimer"><i class="bi bi-trash"></i></button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ses récoltes -->
+          <div class="col-lg-8">
+            <div class="carte-terrain">
+              <div class="entete mb-3">
+                <h3>Récoltes de ce terrain</h3>
+                <a href="ajouterRecolte.php?idTerrain=<?= e($terrain['id']) ?>" class="lien-details">+ Ajouter</a>
+              </div>
+
+              <?php if (empty($recoltes)): ?>
+                <p class="sous-titre">Aucune récolte pour ce terrain.</p>
+              <?php else: ?>
+                <div class="table-responsive">
+                  <table class="table align-middle">
+                    <thead>
+                      <tr><th>Culture</th><th>Plantation</th><th>Récolte</th><th>Quantité</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                      <?php foreach ($recoltes as $r): ?>
+                        <tr>
+                          <td><?= e($r['culture']) ?></td>
+                          <td><?= e(date('d/m/Y', strtotime($r['datePlantation']))) ?></td>
+                          <td><?= e(date('d/m/Y', strtotime($r['dateRecolte']))) ?></td>
+                          <td><?= e($r['quantite']) ?> <?= e($r['unite']) ?></td>
+                          <td class="text-end actions-mini">
+                            <a href="modifierRecolte.php?id=<?= e($r['id']) ?>" title="Modifier"><i class="bi bi-pencil"></i></a>
+                            <form action="supprimerRecolte.php" method="POST" class="d-inline"
+                                  onsubmit="return confirm('Supprimer cette récolte ?');">
+                              <input type="hidden" name="id" value="<?= e($r['id']) ?>">
+                              <input type="hidden" name="retour" value="detailsTerrain.php?id=<?= e($terrain['id']) ?>">
+                              <button type="submit" class="btn-icone danger" title="Supprimer"><i class="bi bi-trash"></i></button>
+                            </form>
+                          </td>
+                        </tr>
+                      <?php endforeach; ?>
+                    </tbody>
+                  </table>
+                </div>
+              <?php endif; ?>
+            </div>
+          </div>
+
+        </div>
+      </div>
     </section>
+
 
   </main>
 

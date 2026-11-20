@@ -1,3 +1,17 @@
+<?php
+/* =====================================================================
+ *  PARTIE 1 : à coller TOUT EN HAUT de BackOffice/listeRecoltes.php
+ *             (ligne 1, AVANT <!DOCTYPE html>)
+ * ===================================================================== */
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/RecolteController.php';
+
+requireAdmin();
+
+$recherche = trim($_GET['q'] ?? '');
+$recoltes  = (new RecolteController())->listAllRecoltes($recherche);
+$flash     = getFlash();
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -379,23 +393,34 @@
                 </nav>
                 <!-- End of Topbar -->
 
-                <!-- Begin Page Content -->
                 <div class="container-fluid">
 
-                    <!-- Page Heading -->
-                                        <h1 class="h3 mb-2 text-gray-800">Liste des récoltes</h1>
+                    <h1 class="h3 mb-2 text-gray-800">Liste des récoltes</h1>
                     <p class="mb-4">Toutes les récoltes de tous les terrains.</p>
+
+                    <?php if ($flash): ?>
+                        <div class="alert alert-<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
+                    <?php endif; ?>
 
                     <div class="card shadow mb-4">
                         <div class="card-header py-3">
-                            <h6 class="m-0 font-weight-bold text-primary">Récoltes</h6>
+                            <h6 class="m-0 font-weight-bold text-primary">Récoltes (<?= count($recoltes) ?>)</h6>
                         </div>
                         <div class="card-body">
-                            <div class="row mb-3">
+
+                            <form method="GET" class="row mb-3">
                                 <div class="col-md-5">
-                                    <input type="text" class="form-control" placeholder="Rechercher une culture ou un terrain...">
+                                    <input type="text" name="q" class="form-control" value="<?= e($recherche) ?>"
+                                           placeholder="Rechercher une culture, un terrain ou un propriétaire...">
                                 </div>
-                            </div>
+                                <div class="col-md-auto">
+                                    <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Rechercher</button>
+                                    <?php if ($recherche !== ''): ?>
+                                        <a href="listeRecoltes.php" class="btn btn-light">Effacer</a>
+                                    <?php endif; ?>
+                                </div>
+                            </form>
+
                             <div class="table-responsive">
                                 <table class="table table-bordered" width="100%" cellspacing="0">
                                     <thead>
@@ -404,32 +429,41 @@
                                             <th>Culture</th>
                                             <th>Terrain</th>
                                             <th>Propriétaire</th>
-                                            <th>Date de récolte</th>
+                                            <th>Plantation</th>
+                                            <th>Récolte</th>
                                             <th>Quantité</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr>
-                                            <td>1</td><td>Blé</td><td>Terrain Zaghouan</td><td>Ahmed Ben Ali</td>
-                                            <td>15/06/2026</td><td>800 kg</td>
-                                            <td><a href="#" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Supprimer</a></td>
-                                        </tr>
-                                        <tr>
-                                            <td>2</td><td>Orge</td><td>Terrain Zaghouan</td><td>Ahmed Ben Ali</td>
-                                            <td>02/07/2026</td><td>1.2 tonne</td>
-                                            <td><a href="#" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Supprimer</a></td>
-                                        </tr>
-                                        <tr>
-                                            <td>3</td><td>Olives</td><td>Terrain Béja</td><td>Salma Trabelsi</td>
-                                            <td>20/11/2026</td><td>350 kg</td>
-                                            <td><a href="#" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Supprimer</a></td>
-                                        </tr>
+                                        <?php if (empty($recoltes)): ?>
+                                            <tr><td colspan="8" class="text-center">Aucune récolte trouvée.</td></tr>
+                                        <?php endif; ?>
+                                        <?php foreach ($recoltes as $r): ?>
+                                            <tr>
+                                                <td><?= e($r['id']) ?></td>
+                                                <td><?= e($r['culture']) ?></td>
+                                                <td><?= e($r['terrainNom']) ?></td>
+                                                <td><?= e($r['proprietaire'] ?? '-') ?></td>
+                                                <td><?= e(date('d/m/Y', strtotime($r['datePlantation']))) ?></td>
+                                                <td><?= e(date('d/m/Y', strtotime($r['dateRecolte']))) ?></td>
+                                                <td><?= e($r['quantite']) ?> <?= e($r['unite']) ?></td>
+                                                <td>
+                                                    <form action="supprimerRecolte.php" method="POST" class="d-inline"
+                                                          onsubmit="return confirm('Supprimer cette récolte ?');">
+                                                        <input type="hidden" name="id" value="<?= e($r['id']) ?>">
+                                                        <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Supprimer</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
                     </div>
+
+                </div>
 
                 </div>
                 <!-- /.container-fluid -->

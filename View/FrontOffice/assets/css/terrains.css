@@ -107,13 +107,52 @@
 .lien-details:hover {
   color: #2f4f40;
 }
-.actions-mini a {
+.actions-mini a,
+.btn-icone {
   color: #6b7470;
   margin-left: 14px;
   font-size: 1.15rem;
 }
-.actions-mini a:hover {
+.actions-mini a:hover,
+.btn-icone:hover {
   color: #3a7d4f;
+}
+
+/* ===== Ajouts CRUD ===== */
+
+/* Bouton icône (supprimer) dans un petit formulaire */
+.btn-icone {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.btn-icone.danger:hover {
+  color: #c0392b;
+}
+
+/* Messages d'erreur sous les champs */
+.erreur {
+  color: #c0392b;
+  font-size: 0.9rem;
+  margin-top: 6px;
+  min-height: 1em;
+}
+
+/* Carte vide (aucun terrain / aucune récolte) */
+.carte-vide {
+  text-align: center;
+  padding: 50px 20px;
+  color: #6b7470;
+}
+.carte-vide i {
+  font-size: 2.5rem;
+  color: #7fae82;
+}
+
+/* Tableaux dans les cartes */
+.carte-terrain .table {
+  margin-bottom: 0;
 }
 
 /* Téléphone */

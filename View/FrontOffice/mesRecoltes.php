@@ -1,3 +1,16 @@
+<?php
+/* =====================================================================
+ *  PARTIE 1 : à coller TOUT EN HAUT de mesRecoltes.php
+ *             (ligne 1, AVANT <!DOCTYPE html>)
+ * ===================================================================== */
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/RecolteController.php';
+
+$idUtilisateur = requireLogin();
+$recolteC      = new RecolteController();
+$recoltes      = $recolteC->listRecoltesByUser($idUtilisateur);   // SEULEMENT ses récoltes
+$flash         = getFlash();
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -71,66 +84,68 @@
   </header>
 
   <main class="main">
-    <section class="container my-5">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-  <h2>Mes récoltes</h2>
-  <a href="ajouterRecolte.php" class="btn btn-success">+ Ajouter une récolte</a>
-</div>
+    <section class="page-terrains">
+      <div class="container">
 
-<table class="table table-bordered table-hover">
-  <thead class="table-light">
-    <tr>
-      <th>Culture</th>
-      <th>Terrain</th>
-      <th>Date de récolte</th>
-      <th>Quantité</th>
-      <th>Unité</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Blé</td>
-      <td><a href="detailsTerrain.php">Terrain Zaghouan</a></td>
-      <td>15/06/2026</td>
-      <td>800</td>
-      <td>kg</td>
-      <td>
-        <a href="modifierRecolte.php" class="btn btn-sm btn-warning">Modifier</a>
-        <a href="#" class="btn btn-sm btn-danger">Supprimer</a>
-      </td>
-    </tr>
-    <tr>
-      <td>Orge</td>
-      <td><a href="detailsTerrain.php">Terrain Zaghouan</a></td>
-      <td>02/07/2026</td>
-      <td>1.2</td>
-      <td>tonne</td>
-      <td>
-        <a href="modifierRecolte.php" class="btn btn-sm btn-warning">Modifier</a>
-        <a href="#" class="btn btn-sm btn-danger">Supprimer</a>
-      </td>
-    </tr>
-    <tr>
-      <td>Olives</td>
-      <td><a href="detailsTerrain.php">Terrain Béja</a></td>
-      <td>20/11/2026</td>
-      <td>350</td>
-      <td>kg</td>
-      <td>
-        <a href="modifierRecolte.php" class="btn btn-sm btn-warning">Modifier</a>
-        <a href="#" class="btn btn-sm btn-danger">Supprimer</a>
-      </td>
-    </tr>
+        <div class="hero-terrains">
+          <div>
+            <p class="sur-titre">Agriculture intelligente</p>
+            <h1>Mes récoltes</h1>
+          </div>
+          <a href="ajouterRecolte.php" class="btn-hero">Ajouter une récolte</a>
+        </div>
 
-    <!--
-    <tr>
-      <td colspan="6" class="text-center text-muted">Aucune récolte pour le moment.</td>
-    </tr>
-    -->
-  </tbody>
-</table>
+        <?php if ($flash): ?>
+          <div class="alert alert-<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
+        <?php endif; ?>
+
+        <div class="carte-terrain">
+          <?php if (empty($recoltes)): ?>
+            <div class="carte-vide">
+              <i class="bi bi-basket"></i>
+              <p class="mt-3 mb-4">Vous n'avez encore aucune récolte.</p>
+              <div><a href="ajouterRecolte.php" class="btn-hero">Ajouter ma première récolte</a></div>
+            </div>
+          <?php else: ?>
+            <div class="table-responsive">
+              <table class="table align-middle">
+                <thead>
+                  <tr>
+                    <th>Culture</th>
+                    <th>Terrain</th>
+                    <th>Plantation</th>
+                    <th>Récolte</th>
+                    <th>Quantité</th>
+                    <th class="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php foreach ($recoltes as $r): ?>
+                    <tr>
+                      <td><?= e($r['culture']) ?></td>
+                      <td><a href="detailsTerrain.php?id=<?= e($r['idTerrain']) ?>" class="lien-details fs-6"><?= e($r['terrainNom']) ?></a></td>
+                      <td><?= e(date('d/m/Y', strtotime($r['datePlantation']))) ?></td>
+                      <td><?= e(date('d/m/Y', strtotime($r['dateRecolte']))) ?></td>
+                      <td><?= e($r['quantite']) ?> <?= e($r['unite']) ?></td>
+                      <td class="text-end actions-mini">
+                        <a href="modifierRecolte.php?id=<?= e($r['id']) ?>" title="Modifier"><i class="bi bi-pencil"></i></a>
+                        <form action="supprimerRecolte.php" method="POST" class="d-inline"
+                              onsubmit="return confirm('Supprimer cette récolte ?');">
+                          <input type="hidden" name="id" value="<?= e($r['id']) ?>">
+                          <button type="submit" class="btn-icone danger" title="Supprimer"><i class="bi bi-trash"></i></button>
+                        </form>
+                      </td>
+                    </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
+            </div>
+          <?php endif; ?>
+        </div>
+
+      </div>
     </section>
+
 
   </main>
 

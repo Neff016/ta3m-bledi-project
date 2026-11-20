@@ -1,3 +1,55 @@
+<?php
+/* =====================================================================
+ *  PARTIE 1 : à coller TOUT EN HAUT de ajouterRecolte.php
+ *             (ligne 1, AVANT <!DOCTYPE html>)
+ * ===================================================================== */
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/TerrainController.php';
+require_once __DIR__ . '/../../Controller/RecolteController.php';
+
+$idUtilisateur = requireLogin();
+$recolteC      = new RecolteController();
+$terrains      = (new TerrainController())->listTerrainsByUser($idUtilisateur);  // pour le <select>
+$erreurs       = [];
+$valeurs       = [
+    'idTerrain'      => $_GET['idTerrain'] ?? '',   // pré-sélection depuis "Détails terrain"
+    'culture'        => '',
+    'datePlantation' => '',
+    'dateRecolte'    => '',
+    'quantite'       => '',
+    'unite'          => 'kg',
+];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $valeurs = [
+        'idTerrain'      => $_POST['idTerrain'] ?? '',
+        'culture'        => trim($_POST['culture'] ?? ''),
+        'datePlantation' => $_POST['datePlantation'] ?? '',
+        'dateRecolte'    => $_POST['dateRecolte'] ?? '',
+        'quantite'       => trim($_POST['quantite'] ?? ''),
+        'unite'          => $_POST['unite'] ?? '',
+    ];
+
+    // Vérifie aussi que le terrain choisi appartient à l'utilisateur
+    $erreurs = $recolteC->validateRecolte($valeurs, $idUtilisateur);
+
+    if (empty($erreurs)) {
+        $recolte = new Recolte(
+            $valeurs['culture'],
+            $valeurs['datePlantation'],
+            $valeurs['dateRecolte'],
+            (float) str_replace(',', '.', $valeurs['quantite']),
+            $valeurs['unite'],
+            (int) $valeurs['idTerrain']
+        );
+        $recolteC->addRecolte($recolte);
+        setFlash('Récolte ajoutée avec succès.');
+        header('Location: mesRecoltes.php');
+        exit;
+    }
+}
+
+$texteBouton = 'Ajouter';
 <!DOCTYPE html>
 <html lang="en">
 
@@ -72,50 +124,30 @@
   </header>
 
   <main class="main">
-          <section class="container my-5">
-      <h2 class="mb-4">Ajouter une récolte</h2>
+<section class="page-terrains">
+      <div class="container">
 
-      <form action="" method="POST">
-
-        <div class="mb-3">
-          <label for="idTerrain" class="form-label">Terrain</label>
-          <select class="form-select" id="idTerrain" name="idTerrain">
-            <option value="">-- Choisir un terrain --</option>
-            <option value="1">Terrain Zaghouan</option>
-            <option value="2">Terrain Béja</option>
-            <option value="3">Terrain Nabeul</option>
-          </select>
-        </div>
-
-        <div class="mb-3">
-          <label for="culture" class="form-label">Culture</label>
-          <input type="text" class="form-control" id="culture" name="culture" placeholder="Ex : Blé">
-        </div>
-
-        <div class="mb-3">
-          <label for="dateRecolte" class="form-label">Date de récolte</label>
-          <input type="date" class="form-control" id="dateRecolte" name="dateRecolte">
-        </div>
-
-        <div class="row">
-          <div class="col-md-8 mb-3">
-            <label for="quantite" class="form-label">Quantité</label>
-            <input type="text" class="form-control" id="quantite" name="quantite" placeholder="Ex : 800">
+        <div class="hero-terrains">
+          <div>
+            <p class="sur-titre">Agriculture intelligente</p>
+            <h1>Ajouter une récolte</h1>
           </div>
-          <div class="col-md-4 mb-3">
-            <label for="unite" class="form-label">Unité</label>
-            <select class="form-select" id="unite" name="unite">
-              <option value="kg">kg</option>
-              <option value="tonne">tonne</option>
-            </select>
-          </div>
+          <a href="mesRecoltes.php" class="btn-hero">Retour à mes récoltes</a>
         </div>
 
-        <button type="submit" class="btn btn-success">Ajouter</button>
-        <a href="mesRecoltes.php" class="btn btn-secondary">Annuler</a>
+        <div class="carte-terrain">
+          <?php if (empty($terrains)): ?>
+            <div class="carte-vide">
+              <i class="bi bi-geo-alt"></i>
+              <p class="mt-3 mb-4">Ajoutez d'abord un terrain avant d'ajouter une récolte.</p>
+              <div><a href="ajouterTerrain.php" class="btn-hero">Ajouter un terrain</a></div>
+            </div>
+          <?php else: ?>
+            <?php require __DIR__ . '/partials/formRecolte.php'; ?>
+          <?php endif; ?>
+        </div>
 
-      </form>
-    </section>
+      </div>
     </section>
 
   </main>

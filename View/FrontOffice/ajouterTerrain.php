@@ -1,3 +1,46 @@
+<?php
+/* =====================================================================
+ *  PARTIE 1 : à coller TOUT EN HAUT de ajouterTerrain.php
+ *             (ligne 1, AVANT <!DOCTYPE html>)
+ * ===================================================================== */
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/TerrainController.php';
+
+$idUtilisateur = requireLogin();
+$terrainC      = new TerrainController();
+$erreurs       = [];
+$valeurs       = ['nom' => '', 'localisation' => '', 'superficie' => '', 'typeSol' => ''];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // 1) Récupérer ce que l'utilisateur a saisi
+    $valeurs = [
+        'nom'          => trim($_POST['nom'] ?? ''),
+        'localisation' => $_POST['localisation'] ?? '',
+        'superficie'   => trim($_POST['superficie'] ?? ''),
+        'typeSol'      => $_POST['typeSol'] ?? '',
+    ];
+
+    // 2) Contrôle de saisie côté serveur (même si le JS est désactivé)
+    $erreurs = $terrainC->validateTerrain($valeurs);
+
+    // 3) Tout est correct → on enregistre et on revient à la liste
+    if (empty($erreurs)) {
+        $terrain = new Terrain(
+            $valeurs['nom'],
+            $valeurs['localisation'],
+            (float) str_replace(',', '.', $valeurs['superficie']),
+            $valeurs['typeSol'],
+            $idUtilisateur          // le terrain appartient à l'utilisateur connecté
+        );
+        $terrainC->addTerrain($terrain);
+        setFlash('Terrain ajouté avec succès.');
+        header('Location: mesTerrains.php');
+        exit;
+    }
+}
+
+$texteBouton = 'Ajouter';
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -26,6 +69,7 @@
 
   <!-- Main CSS File -->
   <link href="assets/css/main.css" rel="stylesheet">
+  <link href="assets/css/terrains.css" rel="stylesheet">
 
   <!-- =======================================================
   * Template Name: Taam Bledi
@@ -71,56 +115,23 @@
   </header>
 
   <main class="main">
-    <section class="container my-5">
-     <h2>Ajouter un terrain</h2>
-<form>
-  <label>Nom du terrain</label>
-  <input type="text" name="nom">
+    <section class="page-terrains">
+      <div class="container">
 
-  <label>Localisation (region)</label>
-  <select name="localisation">
-    <option value="">-- Choisir --</option>
-  <option value="">-- Choisir une region --</option>
-  <option value="Ariana">Ariana</option>
-  <option value="Béja">Béja</option>
-  <option value="Ben Arous">Ben Arous</option>
-  <option value="Bizerte">Bizerte</option>
-  <option value="Gabès">Gabès</option>
-  <option value="Gafsa">Gafsa</option>
-  <option value="Jendouba">Jendouba</option>
-  <option value="Kairouan">Kairouan</option>
-  <option value="Kasserine">Kasserine</option>
-  <option value="Kébili">Kébili</option>
-  <option value="Le Kef">Le Kef</option>
-  <option value="Mahdia">Mahdia</option>
-  <option value="La Manouba">La Manouba</option>
-  <option value="Médenine">Médenine</option>
-  <option value="Monastir">Monastir</option>
-  <option value="Nabeul">Nabeul</option>
-  <option value="Sfax">Sfax</option>
-  <option value="Sidi Bouzid">Sidi Bouzid</option>
-  <option value="Siliana">Siliana</option>
-  <option value="Sousse">Sousse</option>
-  <option value="Tataouine">Tataouine</option>
-  <option value="Tozeur">Tozeur</option>
-  <option value="Tunis">Tunis</option>
-  <option value="Zaghouan">Zaghouan</option>
-  </select>
+        <div class="hero-terrains">
+          <div>
+            <p class="sur-titre">Agriculture intelligente</p>
+            <h1>Ajouter un terrain</h1>
+          </div>
+          <a href="mesTerrains.php" class="btn-hero">Retour à mes terrains</a>
+        </div>
 
-  <label>Superficie (ha)</label>
-  <input type="text" name="superficie">
+        <div class="carte-terrain">
+          <?php require __DIR__ . '/partials/formTerrain.php'; ?>
+        </div>
 
-  <label>Type de sol</label>
-  <select name="typeSol">
-    <option value="">-- Choisir --</option>
-    <option>Argileux</option><option>Sableux</option><option>Calcaire</option>
-  </select>
-
-  <button type="submit">Ajouter</button>
-  <a href="mesTerrains.php">Annuler</a>
-</form>
+      </div>
     </section>
-
   </main>
 
   <footer id="footer" class="footer dark-background">

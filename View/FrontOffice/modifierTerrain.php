@@ -1,3 +1,61 @@
+<?php
+/* =====================================================================
+ *  PARTIE 1 : à coller TOUT EN HAUT de modifierTerrain.php
+ *             (ligne 1, AVANT <!DOCTYPE html>)
+ * ===================================================================== */
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/TerrainController.php';
+
+$idUtilisateur = requireLogin();
+$terrainC      = new TerrainController();
+
+// L'id du terrain arrive dans l'URL : modifierTerrain.php?id=3
+$id      = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+$terrain = $id ? $terrainC->getTerrainOfUser($id, $idUtilisateur) : false;
+
+// Terrain introuvable OU appartient à quelqu'un d'autre → retour à la liste
+if (!$terrain) {
+    setFlash("Ce terrain n'existe pas ou ne vous appartient pas.", 'danger');
+    header('Location: mesTerrains.php');
+    exit;
+}
+
+$erreurs = [];
+$valeurs = [   // valeurs actuelles (formulaire pré-rempli)
+    'nom'          => $terrain['nom'],
+    'localisation' => $terrain['localisation'],
+    'superficie'   => $terrain['superficie'],
+    'typeSol'      => $terrain['typeSol'],
+];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $valeurs = [
+        'nom'          => trim($_POST['nom'] ?? ''),
+        'localisation' => $_POST['localisation'] ?? '',
+        'superficie'   => trim($_POST['superficie'] ?? ''),
+        'typeSol'      => $_POST['typeSol'] ?? '',
+    ];
+
+    $erreurs = $terrainC->validateTerrain($valeurs);
+
+    if (empty($erreurs)) {
+        $terrainModifie = new Terrain(
+            $valeurs['nom'],
+            $valeurs['localisation'],
+            (float) str_replace(',', '.', $valeurs['superficie']),
+            $valeurs['typeSol'],
+            $idUtilisateur,
+            $id
+        );
+        $terrainC->updateTerrain($terrainModifie);
+        setFlash('Terrain modifié avec succès.');
+        header('Location: mesTerrains.php');
+        exit;
+    }
+}
+
+$texteBouton = 'Enregistrer';
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -72,10 +130,9 @@
 
   <main class="main">
     
-      <section class="page-terrains">
+    <section class="page-terrains">
       <div class="container">
 
-        <!-- Bannière -->
         <div class="hero-terrains">
           <div>
             <p class="sur-titre">Agriculture intelligente</p>
@@ -84,72 +141,8 @@
           <a href="mesTerrains.php" class="btn-hero">Retour à mes terrains</a>
         </div>
 
-        <!-- Formulaire -->
         <div class="carte-terrain">
-          <form action="" method="POST">
-
-            <input type="hidden" name="id" value="1">
-
-            <div class="row">
-              <div class="col-md-6 mb-4">
-                <label for="nom" class="form-label">Nom du terrain</label>
-                <input type="text" class="form-control" id="nom" name="nom" value="Terrain Zaghouan">
-              </div>
-
-              <div class="col-md-6 mb-4">
-                <label for="localisation" class="form-label">Localisation (wilaya)</label>
-                <select class="form-select" id="localisation" name="localisation">
-                  <option value="">-- Choisir une wilaya --</option>
-                  <option value="Ariana">Ariana</option>
-                  <option value="Béja">Béja</option>
-                  <option value="Ben Arous">Ben Arous</option>
-                  <option value="Bizerte">Bizerte</option>
-                  <option value="Gabès">Gabès</option>
-                  <option value="Gafsa">Gafsa</option>
-                  <option value="Jendouba">Jendouba</option>
-                  <option value="Kairouan">Kairouan</option>
-                  <option value="Kasserine">Kasserine</option>
-                  <option value="Kébili">Kébili</option>
-                  <option value="Le Kef">Le Kef</option>
-                  <option value="Mahdia">Mahdia</option>
-                  <option value="La Manouba">La Manouba</option>
-                  <option value="Médenine">Médenine</option>
-                  <option value="Monastir">Monastir</option>
-                  <option value="Nabeul">Nabeul</option>
-                  <option value="Sfax">Sfax</option>
-                  <option value="Sidi Bouzid">Sidi Bouzid</option>
-                  <option value="Siliana">Siliana</option>
-                  <option value="Sousse">Sousse</option>
-                  <option value="Tataouine">Tataouine</option>
-                  <option value="Tozeur">Tozeur</option>
-                  <option value="Tunis">Tunis</option>
-                  <option value="Zaghouan" selected>Zaghouan</option>
-                </select>
-              </div>
-
-              <div class="col-md-6 mb-4">
-                <label for="superficie" class="form-label">Superficie (ha)</label>
-                <input type="text" class="form-control" id="superficie" name="superficie" value="2.5">
-              </div>
-
-              <div class="col-md-6 mb-4">
-                <label for="typeSol" class="form-label">Type de sol</label>
-                <select class="form-select" id="typeSol" name="typeSol">
-                  <option value="">-- Choisir --</option>
-                  <option value="Argileux" selected>Argileux</option>
-                  <option value="Sableux">Sableux</option>
-                  <option value="Calcaire">Calcaire</option>
-                  <option value="Limoneux">Limoneux</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="pied">
-              <a href="mesTerrains.php" class="lien-details">Annuler</a>
-              <button type="submit" class="btn-hero border-0">Enregistrer</button>
-            </div>
-
-          </form>
+          <?php require __DIR__ . '/partials/formTerrain.php'; ?>
         </div>
 
       </div>

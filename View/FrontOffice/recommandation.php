@@ -1,3 +1,14 @@
+<?php
+/* =====================================================================
+ *  recommandation.php ET consommationEau.php
+ *  PARTIE 1 SEULEMENT : à coller TOUT EN HAUT de chacune des deux pages
+ *  (ligne 1, AVANT <!DOCTYPE html>). Le reste de la page ne change pas.
+ *  → protège la page : pas connecté = redirection vers la connexion
+ * ===================================================================== */
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+
+$idUtilisateur = requireLogin();
+?>
 <!DOCTYPE html>
 <html lang="en">
 

@@ -1,3 +1,17 @@
+<?php
+/* =====================================================================
+ *  PARTIE 1 : à coller TOUT EN HAUT de BackOffice/listeTerrains.php
+ *             (ligne 1, AVANT <!DOCTYPE html>)
+ * ===================================================================== */
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/TerrainController.php';
+
+requireAdmin();                                   // Admin SEULEMENT
+
+$recherche = trim($_GET['q'] ?? '');
+$terrains  = (new TerrainController())->listAllTerrains($recherche);   // TOUS les terrains
+$flash     = getFlash();
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -379,23 +393,35 @@
                 </nav>
                 <!-- End of Topbar -->
 
-                <!-- Begin Page Content -->
                 <div class="container-fluid">
 
-                    <!-- Page Heading -->
-                                        <h1 class="h3 mb-2 text-gray-800">Liste des terrains</h1>
+                    <h1 class="h3 mb-2 text-gray-800">Liste des terrains</h1>
                     <p class="mb-4">Tous les terrains enregistrés par les agriculteurs.</p>
+
+                    <?php if ($flash): ?>
+                        <div class="alert alert-<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
+                    <?php endif; ?>
 
                     <div class="card shadow mb-4">
                         <div class="card-header py-3">
-                            <h6 class="m-0 font-weight-bold text-primary">Terrains</h6>
+                            <h6 class="m-0 font-weight-bold text-primary">Terrains (<?= count($terrains) ?>)</h6>
                         </div>
                         <div class="card-body">
-                            <div class="row mb-3">
+
+                            <!-- Recherche -->
+                            <form method="GET" class="row mb-3">
                                 <div class="col-md-5">
-                                    <input type="text" class="form-control" placeholder="Rechercher un terrain ou un propriétaire...">
+                                    <input type="text" name="q" class="form-control" value="<?= e($recherche) ?>"
+                                           placeholder="Rechercher un terrain, une wilaya ou un propriétaire...">
                                 </div>
-                            </div>
+                                <div class="col-md-auto">
+                                    <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Rechercher</button>
+                                    <?php if ($recherche !== ''): ?>
+                                        <a href="listeTerrains.php" class="btn btn-light">Effacer</a>
+                                    <?php endif; ?>
+                                </div>
+                            </form>
+
                             <div class="table-responsive">
                                 <table class="table table-bordered" width="100%" cellspacing="0">
                                     <thead>
@@ -411,26 +437,34 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr>
-                                            <td>1</td><td>Terrain Zaghouan</td><td>Ahmed Ben Ali</td><td>Zaghouan</td>
-                                            <td>2.5</td><td>Argileux</td><td>3</td>
-                                            <td><a href="#" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Supprimer</a></td>
-                                        </tr>
-                                        <tr>
-                                            <td>2</td><td>Terrain Béja</td><td>Salma Trabelsi</td><td>Béja</td>
-                                            <td>4</td><td>Calcaire</td><td>1</td>
-                                            <td><a href="#" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Supprimer</a></td>
-                                        </tr>
-                                        <tr>
-                                            <td>3</td><td>Terrain Nabeul</td><td>Youssef Hamdi</td><td>Nabeul</td>
-                                            <td>1.2</td><td>Sableux</td><td>0</td>
-                                            <td><a href="#" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Supprimer</a></td>
-                                        </tr>
+                                        <?php if (empty($terrains)): ?>
+                                            <tr><td colspan="8" class="text-center">Aucun terrain trouvé.</td></tr>
+                                        <?php endif; ?>
+                                        <?php foreach ($terrains as $t): ?>
+                                            <tr>
+                                                <td><?= e($t['id']) ?></td>
+                                                <td><?= e($t['nom']) ?></td>
+                                                <td><?= e($t['proprietaire'] ?? '-') ?></td>
+                                                <td><?= e($t['localisation']) ?></td>
+                                                <td><?= e($t['superficie']) ?></td>
+                                                <td><?= e($t['typeSol']) ?></td>
+                                                <td><?= e($t['nbRecoltes']) ?></td>
+                                                <td>
+                                                    <form action="supprimerTerrain.php" method="POST" class="d-inline"
+                                                          onsubmit="return confirm('Supprimer ce terrain et toutes ses récoltes ?');">
+                                                        <input type="hidden" name="id" value="<?= e($t['id']) ?>">
+                                                        <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Supprimer</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
                     </div>
+
+                </div>
 
                 </div>
                 <!-- /.container-fluid -->
