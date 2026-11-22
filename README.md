@@ -1,72 +1,57 @@
-# Ta3m Bledi – Préservation des variétés agricoles tunisiennes
+# MyApp
 
-## Présentation
+MVC authentication project based on the "Sessions and PHP Security" workshop.
 
-Ce projet a été développé dans le cadre du **Projet Technologies Web** à **l’École Supérieure Privée d’Ingénierie et de Technologies (Esprit)** – Tunisie, durant l’année universitaire 2026–2027.
+## Features
 
-**Ta3m Bledi** est une plateforme web permettant de découvrir, préserver, cultiver et échanger des variétés agricoles traditionnelles tunisiennes menacées par le changement climatique.
+- Registration with `password_hash()`
+- Login with `password_verify()`
+- Logout and secure session management
+- User and administrator roles
+- Prepared PDO queries
+- CSRF token verification
+- XSS output escaping
+- HTTP security headers
+- User CRUD for administrators
+- Server-side and JavaScript input validation
 
-## Fonctionnalités
+## Structure
 
-- Comptes utilisateurs et badges
-- Musée des variétés disparues et témoignages
-- Mes plantations&#x20;
-- Tounes 2050&#x20;
-- Échange de récoltes
-- Ateliers&#x20;
+- `config/database.php`
+- `models/UserModel.php`
+- `controllers/AuthController.php`
+- `views/`
+- `index.php`
+- `taam_bledi.sql`
+- `docs/`
 
-## Technologies utilisées
+## XAMPP Installation
 
-### Frontend
+1. Copy the project to `C:\xampp\htdocs\ta3m-bledi-project`.
+2. Start Apache and MySQL in XAMPP.
+3. Create or select the `taam_bledi` database in phpMyAdmin.
+4. Import `taam_bledi.sql`.
+5. Open `http://localhost/ta3m-bledi-project/index.php`.
 
-- HTML5, CSS, JavaScript
+## Database Configuration
 
+The PDO configuration is in [config/database.php](config/database.php). The workshop base name is `taam_bledi`, the XAMPP host is `localhost`, and the default user is `root`.
 
-### Backend
+## Run
 
-- PHP&#x20;
-- MySQL
-- XAMPP / Apache
+- Home: `http://localhost/ta3m-bledi-project/index.php?action=home`
+- Register: `http://localhost/ta3m-bledi-project/index.php?action=register`
+- Login: `http://localhost/ta3m-bledi-project/index.php?action=login`
+- User space: `http://localhost/ta3m-bledi-project/index.php?action=dashboard`
+- Admin space: `http://localhost/ta3m-bledi-project/index.php?action=admin`
+- User CRUD: `http://localhost/ta3m-bledi-project/index.php?action=users`
 
-## Architecture
+## Test Accounts
 
-Le projet suit le modèle **MVC (Modèle – Vue – Contrôleur)** :
+Create a test account through the registration page, then promote it to administrator through phpMyAdmin:
 
-- `Controllers/` : gèrent les requêtes et choisissent la vue à afficher
-- `Models/` : contiennent les classes et assurent l'accès aux données
-- `Views/` : contiennent les pages du Front Office et du Back Office, avec `includes/` et `partials/`
-
-## Contributeurs
-
-- Yasmine Neffeti
-- Yomna Ghannem
-- Lemis Zmander
-- Meriam Guerrida
-- Youssef Trabelsi
-- Belhassen Ghaleb
-
-## Contexte académique
-
-Développé à **l’École Supérieure Privée d’Ingénierie et de Technologies (Esprit)** – Tunisie.
-
-Projet Technologies Web | 2026–2027
-
-## Démarrage du projet
-
-1. Cloner le repository :
-
-```bash
-git clone https://github.com/Neff016/ta3m-bledi-project.git
+```sql
+UPDATE users SET role = 'admin' WHERE email = 'test@example.com';
 ```
 
-2. Placer le projet dans le dossier `htdocs` de XAMPP.
-3. Démarrer **Apache** et **MySQL** depuis le panneau de contrôle XAMPP.
-4. Ouvrir dans le navigateur :
-
-```text
-http://localhost/ta3m-bledi-project//index.php
-```
-
-## Remerciements
-
-Nous remercions nos tuteurs à **l’École Supérieure Privée d’Ingénierie et de Technologies (Esprit)** pour leur accompagnement et leurs conseils.
+Reconnect after changing the role.
