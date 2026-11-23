@@ -1,10 +1,20 @@
+<?php
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/BadgeController.php';
+
+$idUtilisateur = requireLogin();
+$badges        = (new BadgeController())->badgesDeUtilisateur($idUtilisateur);
+
+$obtenus = array_filter($badges, fn($b) => $b['dateAttribution'] !== null);
+$points  = array_sum(array_map(fn($b) => (int) $b['points'], $obtenus));
+?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>About - AgriCulture Bootstrap Template</title>
+  <title>Taam Bledi - Mes badges</title>
   <meta name="description" content="">
   <meta name="keywords" content="">
 
@@ -26,6 +36,7 @@
 
   <!-- Main CSS File -->
   <link href="assets/css/main.css" rel="stylesheet">
+  <link href="assets/css/utilisateurs.css" rel="stylesheet">
 
   <!-- =======================================================
   * Template Name: AgriCulture
@@ -50,25 +61,17 @@
       <nav id="navmenu" class="navmenu">
         <ul>
           <li><a href="index.html">Home</a></li>
-          <li><a href="about.html" class="active">About Us</a></li>
+          <li><a href="about.html" >About Us</a></li>
           <li><a href="services.html">Our Services</a></li>
           <li><a href="testimonials.html">Testimonials</a></li>
           <li><a href="blog.html">Blog</a></li>
-          <li class="dropdown"><a href="#"><span>Dropdown</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+                    <li class="dropdown"><a href="#"><span>Mon compte</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
             <ul>
-              <li><a href="#">Dropdown 1</a></li>
-              <li class="dropdown"><a href="#"><span>Deep Dropdown</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
-                <ul>
-                  <li><a href="#">Deep Dropdown 1</a></li>
-                  <li><a href="#">Deep Dropdown 2</a></li>
-                  <li><a href="#">Deep Dropdown 3</a></li>
-                  <li><a href="#">Deep Dropdown 4</a></li>
-                  <li><a href="#">Deep Dropdown 5</a></li>
-                </ul>
-              </li>
-              <li><a href="#">Dropdown 2</a></li>
-              <li><a href="#">Dropdown 3</a></li>
-              <li><a href="#">Dropdown 4</a></li>
+              <li><a href="profil.php">Mon profil</a></li>
+              <li><a href="mesBadges.php">Mes badges</a></li>
+              <li><a href="connexion.php">Connexion</a></li>
+              <li><a href="inscription.php">Inscription</a></li>
+              <li><a href="deconnexion.php">Déconnexion</a></li>
             </ul>
           </li>
           <li><a href="contact.html">Contact</a></li>
@@ -78,38 +81,55 @@
 
     </div>
   </header>
-<main class="main">
 
-  <!-- Page Title -->
-<div class="page-title dark-background">
-  <div class="container position-relative">
-    <h1>Connexion</h1>
-  </div>
-</div>
+  <main class="main">
+    <section class="ub-page">
+      <div class="container">
 
-<!-- Formulaire de connexion -->
-<section class="section">
-  <div class="container" style="max-width: 450px;">
-    <form id="formConnexion">
-      <div class="mb-3">
-        <label for="email" class="form-label">Email</label>
-        <input type="email" class="form-control" id="email" name="email" placeholder="exemple@mail.com">
+        <div class="ub-hero">
+          <span class="ub-hero-label">Espace utilisateur</span>
+          <h1>Mes badges</h1>
+        </div>
+
+        <p class="text-center mb-5">
+          <?php if (count($obtenus) === 0): ?>
+            Vous n'avez pas encore de badge. Ajoutez vos premières plantations pour en gagner !
+          <?php else: ?>
+            Vous avez obtenu <strong><?= count($obtenus) ?> badge<?= count($obtenus) > 1 ? 's' : '' ?></strong>
+            (<?= $points ?> points). Continuez comme ça !
+          <?php endif; ?>
+        </p>
+
+        <?php if (empty($badges)): ?>
+          <div class="ub-card text-center">Aucun badge n'existe encore.</div>
+        <?php else: ?>
+          <div class="row g-4">
+            <?php foreach ($badges as $b): ?>
+              <?php $obtenu = $b['dateAttribution'] !== null; ?>
+              <div class="col-md-4 col-lg-3">
+                <div class="ub-badge <?= $obtenu ? '' : 'ub-badge-verrouille' ?>">
+                  <?php if (!empty($b['icone'])): ?>
+                    <img src="assets/img/uploads/badges/<?= e($b['icone']) ?>" alt="<?= e($b['nom']) ?>" class="ub-badge-icone">
+                  <?php else: ?>
+                    <i class="bi <?= $obtenu ? 'bi-award-fill' : 'bi-lock' ?> ub-badge-defaut"></i>
+                  <?php endif; ?>
+                  <h5 class="mt-3"><?= e($b['nom']) ?></h5>
+                  <p><?= e($b['description']) ?></p>
+                  <span class="ub-points"><?= e($b['points']) ?> pts</span>
+                  <small class="d-block text-muted mt-2">
+                    <?= $obtenu
+                        ? 'Obtenu le ' . e(date('d/m/Y', strtotime($b['dateAttribution'])))
+                        : 'Pas encore obtenu : ' . e($b['critere']) ?>
+                  </small>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+
       </div>
-      <div class="mb-3">
-        <label for="motDePasse" class="form-label">Mot de passe</label>
-        <input type="password" class="form-control" id="motDePasse" name="motDePasse">
-      </div>
-      <div class="mb-3 text-end">
-        <a href="motDePasseOublie.html">Mot de passe oublié ?</a>
-      </div>
-      <button type="submit" class="btn btn-success w-100">Se connecter</button>
-      <p class="text-center mt-3">
-        Pas de compte ? <a href="inscription.html">S'inscrire</a>
-      </p>
-    </form>
-  </div>
-</section>
-</main>
+    </section>
+  </main>
 
   <footer id="footer" class="footer dark-background">
 

@@ -1,3 +1,11 @@
+<?php
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/BadgeController.php';
+
+requireAdmin();
+$badges = (new BadgeController())->listBadges();
+$flash  = getFlash();
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -9,7 +17,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>SB Admin 2 - Blank</title>
+    <title>Taam Bledi - Badges</title>
 
     <!-- Custom fonts for this template-->
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
@@ -19,6 +27,7 @@
 
     <!-- Custom styles for this template-->
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
+    <link href="css/module-utilisateurs.css" rel="stylesheet">
 
 </head>
 
@@ -33,9 +42,9 @@
             <!-- Sidebar - Brand -->
             <a class="sidebar-brand d-flex align-items-center justify-content-center" href="index.html">
                 <div class="sidebar-brand-icon rotate-n-15">
-                    <i class="fas fa-laugh-wink"></i>
+                    <i class="fas fa-seedling"></i>
                 </div>
-                <div class="sidebar-brand-text mx-3">SB Admin <sup>2</sup></div>
+                <div class="sidebar-brand-text mx-3">Taam Bledi</div>
             </a>
 
             <!-- Divider -->
@@ -55,17 +64,17 @@
     Utilisateurs et Badges
 </div>
 <li class="nav-item">
-    <a class="nav-link" href="listeUtilisateurs.html">
+    <a class="nav-link" href="listeUtilisateurs.php">
         <i class="fas fa-fw fa-users"></i>
         <span>Utilisateurs</span></a>
 </li>
-<li class="nav-item">
-    <a class="nav-link" href="listeBadges.html">
+<li class="nav-item active">
+    <a class="nav-link" href="listeBadges.php">
         <i class="fas fa-fw fa-award"></i>
         <span>Badges</span></a>
 </li>
 <li class="nav-item">
-    <a class="nav-link" href="attribuerBadge.html">
+    <a class="nav-link" href="attribuerBadge.php">
         <i class="fas fa-fw fa-gift"></i>
         <span>Attribuer un badge</span></a>
 </li>
@@ -119,13 +128,13 @@
             </div>
 
             <!-- Nav Item - Pages Collapse Menu -->
-            <li class="nav-item active">
+            <li class="nav-item">
                 <a class="nav-link" href="#" data-toggle="collapse" data-target="#collapsePages" aria-expanded="true"
                     aria-controls="collapsePages">
                     <i class="fas fa-fw fa-folder"></i>
                     <span>Pages</span>
                 </a>
-                <div id="collapsePages" class="collapse show" aria-labelledby="headingPages"
+                <div id="collapsePages" class="collapse" aria-labelledby="headingPages"
                     data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Login Screens:</h6>
@@ -135,7 +144,7 @@
                         <div class="collapse-divider"></div>
                         <h6 class="collapse-header">Other Pages:</h6>
                         <a class="collapse-item" href="404.html">404 Page</a>
-                        <a class="collapse-item active" href="blank.html">Blank Page</a>
+                        <a class="collapse-item" href="blank.html">Blank Page</a>
                     </div>
                 </div>
             </li>
@@ -343,7 +352,7 @@
                         <li class="nav-item dropdown no-arrow">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <span class="mr-2 d-none d-lg-inline text-gray-600 small">Douglas McGee</span>
+                                <span class="mr-2 d-none d-lg-inline text-gray-600 small"><?= e(($_SESSION['prenom'] ?? '') . ' ' . ($_SESSION['nom'] ?? '')) ?></span>
                                 <img class="img-profile rounded-circle"
                                     src="img/undraw_profile.svg">
                             </a>
@@ -378,62 +387,70 @@
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
 
-                    <!-- Page Heading -->
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-  <h1 class="h3 mb-0 text-gray-800">Gestion des badges</h1>
-  <a href="formBadge.html" class="btn btn-success btn-sm shadow-sm">
-    <i class="fas fa-plus fa-sm text-white-50"></i> Ajouter un badge
-  </a>
-</div>
+                        <h1 class="h3 mb-0 text-gray-800">Gestion des badges</h1>
+                        <a href="formBadge.php" class="btn btn-success btn-sm shadow-sm">
+                            <i class="fas fa-plus fa-sm text-white-50"></i> Ajouter un badge
+                        </a>
+                    </div>
 
-<div class="card shadow mb-4">
-  <div class="card-header py-3">
-    <h6 class="m-0 font-weight-bold text-success">Liste des badges</h6>
-  </div>
-  <div class="card-body">
-    <div class="table-responsive">
-      <table class="table table-bordered table-hover" width="100%">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Icône</th>
-            <th>Nom</th>
-            <th>Description</th>
-            <th>Critère</th>
-            <th>Points</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>1</td>
-            <td><i class="fas fa-seedling fa-2x text-success"></i></td>
-            <td>Premier jardinier</td>
-            <td>Première plantation ajoutée</td>
-            <td>1 plantation</td>
-            <td>10</td>
-            <td>
-              <a href="formBadge.html" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i></a>
-              <button class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
-            </td>
-          </tr>
-          <tr>
-            <td>2</td>
-            <td><i class="fas fa-exchange-alt fa-2x text-success"></i></td>
-            <td>Échangeur solidaire</td>
-            <td>Premier échange réalisé</td>
-            <td>1 échange</td>
-            <td>15</td>
-            <td>
-              <a href="formBadge.html" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i></a>
-              <button class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
+                    <?php if ($flash): ?>
+                        <div class="alert alert-<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
+                    <?php endif; ?>
+
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-success">Liste des badges (<?= count($badges) ?>)</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover" width="100%">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Icône</th>
+                                            <th>Nom</th>
+                                            <th>Description</th>
+                                            <th>Critère</th>
+                                            <th>Points</th>
+                                            <th>Attribué</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php if (empty($badges)): ?>
+                                            <tr><td colspan="8" class="text-center">Aucun badge.</td></tr>
+                                        <?php endif; ?>
+                                        <?php foreach ($badges as $b): ?>
+                                            <tr>
+                                                <td><?= e($b['id']) ?></td>
+                                                <td class="text-center">
+                                                    <?php if (!empty($b['icone'])): ?>
+                                                        <img src="../FrontOffice/assets/img/uploads/badges/<?= e($b['icone']) ?>" alt="" class="ub-icone-table">
+                                                    <?php else: ?>
+                                                        <i class="fas fa-award fa-2x text-success"></i>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td><?= e($b['nom']) ?></td>
+                                                <td><?= e($b['description']) ?></td>
+                                                <td><?= e($b['critere']) ?></td>
+                                                <td><?= e($b['points']) ?></td>
+                                                <td><?= e($b['nbAttributions']) ?> fois</td>
+                                                <td class="text-nowrap">
+                                                    <a href="formBadge.php?id=<?= e($b['id']) ?>" class="btn btn-warning btn-sm" title="Modifier"><i class="fas fa-edit"></i></a>
+                                                    <form action="supprimerBadge.php" method="POST" class="d-inline"
+                                                          onsubmit="return confirm('Supprimer ce badge ? Il sera retiré à tous les utilisateurs.');">
+                                                        <input type="hidden" name="id" value="<?= e($b['id']) ?>">
+                                                        <button type="submit" class="btn btn-danger btn-sm" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
 
                 </div>
                 <!-- /.container-fluid -->
@@ -473,10 +490,10 @@
                         <span aria-hidden="true">×</span>
                     </button>
                 </div>
-                <div class="modal-body">Select "Logout" below if you are ready to end your current session.</div>
+                <div class="modal-body">Cliquez sur « Se déconnecter » pour fermer votre session.</div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
-                    <a class="btn btn-primary" href="login.html">Logout</a>
+                    <a class="btn btn-primary" href="../FrontOffice/deconnexion.php">Se déconnecter</a>
                 </div>
             </div>
         </div>

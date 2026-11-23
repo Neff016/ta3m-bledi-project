@@ -1,10 +1,57 @@
+<?php
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/UtilisateurController.php';
+
+// Déjà connecté → on ne montre pas la page de connexion
+if (!empty($_SESSION['user_id'])) {
+    header('Location: ' . (($_SESSION['role'] ?? '') === 'ADMIN' ? '../BackOffice/listeUtilisateurs.php' : 'profil.php'));
+    exit;
+}
+
+$utilisateurC = new UtilisateurController();
+$erreurs      = [];
+$email        = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email      = trim($_POST['email'] ?? '');
+    $motDePasse = $_POST['motDePasse'] ?? '';
+
+    // Contrôle de saisie
+    if ($email === '') {
+        $erreurs['email'] = "L'email est obligatoire.";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $erreurs['email'] = "L'email n'est pas valide (exemple@mail.com).";
+    }
+    if ($motDePasse === '') {
+        $erreurs['motDePasse'] = 'Le mot de passe est obligatoire.';
+    }
+
+    if (empty($erreurs)) {
+        $resultat = $utilisateurC->connecter($email, $motDePasse);
+        if ($resultat['ok']) {
+            $user = $resultat['user'];
+            session_regenerate_id(true);               // nouvelle session (sécurité)
+            $_SESSION['user_id'] = (int) $user['id'];  // utilisé par tous les modules
+            $_SESSION['role']    = $user['role'];      // 'ADMIN' ou 'AGRICULTEUR'
+            $_SESSION['nom']     = $user['nom'];
+            $_SESSION['prenom']  = $user['prenom'];
+            setFlash('Bienvenue ' . $user['prenom'] . ' !');
+            header('Location: ' . ($user['role'] === 'ADMIN' ? '../BackOffice/listeUtilisateurs.php' : 'profil.php'));
+            exit;
+        }
+        $erreurs['general'] = $resultat['erreur'];
+    }
+}
+
+$flash = getFlash();
+?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>About - AgriCulture Bootstrap Template</title>
+  <title>Taam Bledi - Connexion</title>
   <meta name="description" content="">
   <meta name="keywords" content="">
 
@@ -26,6 +73,7 @@
 
   <!-- Main CSS File -->
   <link href="assets/css/main.css" rel="stylesheet">
+  <link href="assets/css/utilisateurs.css" rel="stylesheet">
 
   <!-- =======================================================
   * Template Name: AgriCulture
@@ -50,108 +98,71 @@
       <nav id="navmenu" class="navmenu">
         <ul>
           <li><a href="index.html">Home</a></li>
-          <li><a href="about.html" class="active">About Us</a></li>
+          <li><a href="about.html">About Us</a></li>
           <li><a href="services.html">Our Services</a></li>
           <li><a href="testimonials.html">Testimonials</a></li>
           <li><a href="blog.html">Blog</a></li>
-          <li class="dropdown"><a href="#"><span>Dropdown</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+                    <li class="dropdown"><a href="#"><span>Mon compte</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
             <ul>
-              <li><a href="#">Dropdown 1</a></li>
-              <li class="dropdown"><a href="#"><span>Deep Dropdown</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
-                <ul>
-                  <li><a href="#">Deep Dropdown 1</a></li>
-                  <li><a href="#">Deep Dropdown 2</a></li>
-                  <li><a href="#">Deep Dropdown 3</a></li>
-                  <li><a href="#">Deep Dropdown 4</a></li>
-                  <li><a href="#">Deep Dropdown 5</a></li>
-                </ul>
-              </li>
-              <li><a href="#">Dropdown 2</a></li>
-              <li><a href="#">Dropdown 3</a></li>
-              <li><a href="#">Dropdown 4</a></li>
+              <li><a href="profil.php">Mon profil</a></li>
+              <li><a href="mesBadges.php">Mes badges</a></li>
+              <li><a href="connexion.php">Connexion</a></li>
+              <li><a href="inscription.php">Inscription</a></li>
+              <li><a href="deconnexion.php">Déconnexion</a></li>
             </ul>
           </li>
           <li><a href="contact.html">Contact</a></li>
-          <li><a href="connexion.html">Connexion</a></li>
         </ul>
         <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
       </nav>
 
     </div>
   </header>
-<main class="main">
 
-  <!-- Page Title -->
-<section class="section">
-  <div class="container" style="max-width: 800px;">
-    <div class="row">
+  <main class="main">
+    <section class="ub-page">
+      <div class="container">
 
-      <!-- Photo + infos -->
-      <div class="col-md-4 text-center mb-4">
-        <img src="assets/img/testimonials/testimonials-1.jpg" alt="Photo de profil"
-             class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
-        <h4>Yomna Ghannem</h4>
-        <p class="text-muted">Utilisateur</p>
-        <a href="mesBadges.html" class="btn btn-outline-success btn-sm">Voir mes badges</a>
-      </div>
+        <div class="ub-hero">
+          <span class="ub-hero-label">Espace utilisateur</span>
+          <h1>Connexion</h1>
+        </div>
 
-      <!-- Formulaire de modification -->
-      <div class="col-md-8">
-        <h4 class="mb-3">Modifier mes informations</h4>
-        <form id="formProfil">
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label for="nom" class="form-label">Nom</label>
-              <input type="text" class="form-control" id="nom" name="nom" value="Ghannem">
+        <div class="ub-card">
+          <?php if ($flash): ?>
+            <div class="alert alert-<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
+          <?php endif; ?>
+          <?php if (isset($erreurs['general'])): ?>
+            <div class="alert alert-danger"><?= e($erreurs['general']) ?></div>
+          <?php endif; ?>
+
+          <form id="formConnexion" action="" method="POST" novalidate>
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input type="text" class="form-control <?= isset($erreurs['email']) ? 'is-invalid' : '' ?>"
+                     id="email" name="email" value="<?= e($email) ?>" placeholder="exemple@mail.com">
+              <div class="ub-erreur" id="erreur-email"><?= e($erreurs['email'] ?? '') ?></div>
             </div>
-            <div class="col-md-6 mb-3">
-              <label for="prenom" class="form-label">Prénom</label>
-              <input type="text" class="form-control" id="prenom" name="prenom" value="Yomna">
+            <div class="mb-3">
+              <label for="motDePasse" class="form-label">Mot de passe</label>
+              <input type="password" class="form-control <?= isset($erreurs['motDePasse']) ? 'is-invalid' : '' ?>"
+                     id="motDePasse" name="motDePasse">
+              <div class="ub-erreur" id="erreur-motDePasse"><?= e($erreurs['motDePasse'] ?? '') ?></div>
             </div>
-          </div>
-          <div class="mb-3">
-            <label for="email" class="form-label">Email</label>
-            <input type="email" class="form-control" id="email" name="email" value="yomna@mail.com">
-          </div>
-          <div class="mb-3">
-            <label for="telephone" class="form-label">Téléphone</label>
-            <input type="tel" class="form-control" id="telephone" name="telephone" value="12345678">
-          </div>
-          <div class="mb-3">
-            <label for="photo" class="form-label">Photo de profil</label>
-            <input type="file" class="form-control" id="photo" name="photo">
-          </div>
-          <button type="submit" class="btn btn-success">Enregistrer</button>
-        </form>
+            <div class="mb-3 text-end">
+              <a href="MotDePasseOublie.php">Mot de passe oublié ?</a>
+            </div>
+            <button type="submit" class="ub-btn">Se connecter</button>
+            <p class="text-center mt-3 mb-0">
+              Pas de compte ? <a href="inscription.php">S'inscrire</a>
+            </p>
+          </form>
+        </div>
 
-        <hr class="my-4">
-
-        <h4 class="mb-3">Changer le mot de passe</h4>
-        <form id="formMotDePasse">
-          <div class="mb-3">
-            <label for="ancienMdp" class="form-label">Mot de passe actuel</label>
-            <input type="password" class="form-control" id="ancienMdp" name="ancienMdp">
-          </div>
-          <div class="mb-3">
-            <label for="nouveauMdp" class="form-label">Nouveau mot de passe</label>
-            <input type="password" class="form-control" id="nouveauMdp" name="nouveauMdp">
-          </div>
-          <button type="submit" class="btn btn-outline-success">Modifier le mot de passe</button>
-        </form>
       </div>
-
-    </div>
-  </div>
-</section>
-<div class="page-title dark-background">
-  <div class="container position-relative">
-    <h1>profil</h1>
-  </div>
-</div>
-
-<!-- Formulaire de profil-->
-
-</main>
+    </section>
+    <script src="assets/js/validation-utilisateurs.js"></script>
+  </main>
 
   <footer id="footer" class="footer dark-background">
 

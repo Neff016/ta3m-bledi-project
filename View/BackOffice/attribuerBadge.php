@@ -1,3 +1,36 @@
+<?php
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/UtilisateurController.php';
+require_once __DIR__ . '/../../Controller/BadgeController.php';
+
+requireAdmin();
+$utilisateurC = new UtilisateurController();
+$badgeC       = new BadgeController();
+
+$erreurs = [];
+$valeurs = ['idUtilisateur' => '', 'idBadge' => '', 'motif' => ''];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $valeurs = [
+        'idUtilisateur' => $_POST['idUtilisateur'] ?? '',
+        'idBadge'       => $_POST['idBadge'] ?? '',
+        'motif'         => trim($_POST['motif'] ?? ''),
+    ];
+    $erreurs = $badgeC->validateAttribution($valeurs, $utilisateurC);
+
+    if (empty($erreurs)) {
+        $badgeC->attribuer(new Attribution((int) $valeurs['idUtilisateur'], (int) $valeurs['idBadge'], $valeurs['motif']));
+        setFlash('Badge attribué avec succès.');
+        header('Location: attribuerBadge.php');
+        exit;
+    }
+}
+
+$utilisateurs = $utilisateurC->listUtilisateurs();
+$badges       = $badgeC->listBadges();
+$attributions = $badgeC->listAttributions();
+$flash        = getFlash();
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -9,7 +42,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>SB Admin 2 - Blank</title>
+    <title>Taam Bledi - Attribuer un badge</title>
 
     <!-- Custom fonts for this template-->
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
@@ -19,6 +52,7 @@
 
     <!-- Custom styles for this template-->
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
+    <link href="css/module-utilisateurs.css" rel="stylesheet">
 
 </head>
 
@@ -33,9 +67,9 @@
             <!-- Sidebar - Brand -->
             <a class="sidebar-brand d-flex align-items-center justify-content-center" href="index.html">
                 <div class="sidebar-brand-icon rotate-n-15">
-                    <i class="fas fa-laugh-wink"></i>
+                    <i class="fas fa-seedling"></i>
                 </div>
-                <div class="sidebar-brand-text mx-3">SB Admin <sup>2</sup></div>
+                <div class="sidebar-brand-text mx-3">Taam Bledi</div>
             </a>
 
             <!-- Divider -->
@@ -50,22 +84,22 @@
 
             <!-- Divider -->
             <hr class="sidebar-divider">
-            <!-- Module Utilisateurs et Badges -->
+             <!-- Module Utilisateurs et Badges -->
 <div class="sidebar-heading">
     Utilisateurs et Badges
 </div>
 <li class="nav-item">
-    <a class="nav-link" href="listeUtilisateurs.html">
+    <a class="nav-link" href="listeUtilisateurs.php">
         <i class="fas fa-fw fa-users"></i>
         <span>Utilisateurs</span></a>
 </li>
 <li class="nav-item">
-    <a class="nav-link" href="listeBadges.html">
+    <a class="nav-link" href="listeBadges.php">
         <i class="fas fa-fw fa-award"></i>
         <span>Badges</span></a>
 </li>
-<li class="nav-item">
-    <a class="nav-link" href="attribuerBadge.html">
+<li class="nav-item active">
+    <a class="nav-link" href="attribuerBadge.php">
         <i class="fas fa-fw fa-gift"></i>
         <span>Attribuer un badge</span></a>
 </li>
@@ -119,13 +153,13 @@
             </div>
 
             <!-- Nav Item - Pages Collapse Menu -->
-            <li class="nav-item active">
+            <li class="nav-item">
                 <a class="nav-link" href="#" data-toggle="collapse" data-target="#collapsePages" aria-expanded="true"
                     aria-controls="collapsePages">
                     <i class="fas fa-fw fa-folder"></i>
                     <span>Pages</span>
                 </a>
-                <div id="collapsePages" class="collapse show" aria-labelledby="headingPages"
+                <div id="collapsePages" class="collapse" aria-labelledby="headingPages"
                     data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Login Screens:</h6>
@@ -135,7 +169,7 @@
                         <div class="collapse-divider"></div>
                         <h6 class="collapse-header">Other Pages:</h6>
                         <a class="collapse-item" href="404.html">404 Page</a>
-                        <a class="collapse-item active" href="blank.html">Blank Page</a>
+                        <a class="collapse-item" href="blank.html">Blank Page</a>
                     </div>
                 </div>
             </li>
@@ -343,7 +377,7 @@
                         <li class="nav-item dropdown no-arrow">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <span class="mr-2 d-none d-lg-inline text-gray-600 small">Douglas McGee</span>
+                                <span class="mr-2 d-none d-lg-inline text-gray-600 small"><?= e(($_SESSION['prenom'] ?? '') . ' ' . ($_SESSION['nom'] ?? '')) ?></span>
                                 <img class="img-profile rounded-circle"
                                     src="img/undraw_profile.svg">
                             </a>
@@ -378,66 +412,106 @@
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
 
-                    <!-- Page Heading -->
-                    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-  <h1 class="h3 mb-0 text-gray-800">Gestion des utilisateurs</h1>
-  <a href="formUtilisateur.html" class="btn btn-success btn-sm shadow-sm">
-    <i class="fas fa-plus fa-sm text-white-50"></i> Ajouter un utilisateur
-  </a>
-</div>
+                    <h1 class="h3 mb-4 text-gray-800">Attribuer un badge</h1>
 
-<div class="card shadow mb-4">
-  <div class="card-header py-3">
-    <h6 class="m-0 font-weight-bold text-success">Liste des utilisateurs</h6>
-  </div>
-  <div class="card-body">
-    <div class="table-responsive">
-      <table class="table table-bordered table-hover" width="100%">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Nom</th>
-            <th>Prénom</th>
-            <th>Email</th>
-            <th>Rôle</th>
-            <th>Statut</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>1</td>
-            <td>Ghannem</td>
-            <td>Yomna</td>
-            <td>yomna@mail.com</td>
-            <td><span class="badge badge-primary">Admin</span></td>
-            <td><span class="badge badge-success">Actif</span></td>
-            <td>
-              <a href="formUtilisateur.html" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i></a>
-              <button class="btn btn-secondary btn-sm"><i class="fas fa-lock"></i></button>
-              <button class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
-            </td>
-          </tr>
-          <tr>
-            <td>2</td>
-            <td>Ben Salah</td>
-            <td>Amine</td>
-            <td>amine@mail.com</td>
-            <td><span class="badge badge-secondary">Utilisateur</span></td>
-            <td><span class="badge badge-danger">Bloqué</span></td>
-            <td>
-              <a href="formUtilisateur.html" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i></a>
-              <button class="btn btn-secondary btn-sm"><i class="fas fa-unlock"></i></button>
-              <button class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
+                    <?php if ($flash): ?>
+                        <div class="alert alert-<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
+                    <?php endif; ?>
+
+                    <div class="row">
+
+                        <!-- Formulaire d'attribution -->
+                        <div class="col-lg-5">
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-success">Nouvelle attribution</h6>
+                                </div>
+                                <div class="card-body">
+                                    <form id="formAttribution" action="" method="POST" novalidate>
+                                        <div class="form-group">
+                                            <label for="idUtilisateur">Utilisateur</label>
+                                            <select id="idUtilisateur" name="idUtilisateur" class="form-control <?= isset($erreurs['idUtilisateur']) ? 'is-invalid' : '' ?>">
+                                                <option value="">-- Choisir un utilisateur --</option>
+                                                <?php foreach ($utilisateurs as $u): ?>
+                                                    <option value="<?= e($u['id']) ?>" <?= (string) $valeurs['idUtilisateur'] === (string) $u['id'] ? 'selected' : '' ?>>
+                                                        <?= e($u['prenom'] . ' ' . $u['nom']) ?> (<?= e($u['email']) ?>)
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <div class="ub-erreur" id="erreur-idUtilisateur"><?= e($erreurs['idUtilisateur'] ?? '') ?></div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="idBadge">Badge</label>
+                                            <select id="idBadge" name="idBadge" class="form-control <?= isset($erreurs['idBadge']) ? 'is-invalid' : '' ?>">
+                                                <option value="">-- Choisir un badge --</option>
+                                                <?php foreach ($badges as $b): ?>
+                                                    <option value="<?= e($b['id']) ?>" <?= (string) $valeurs['idBadge'] === (string) $b['id'] ? 'selected' : '' ?>>
+                                                        <?= e($b['nom']) ?> (<?= e($b['points']) ?> pts)
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <div class="ub-erreur" id="erreur-idBadge"><?= e($erreurs['idBadge'] ?? '') ?></div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="motif">Motif</label>
+                                            <textarea class="form-control <?= isset($erreurs['motif']) ? 'is-invalid' : '' ?>"
+                                                      id="motif" name="motif" rows="2"><?= e($valeurs['motif']) ?></textarea>
+                                            <div class="ub-erreur" id="erreur-motif"><?= e($erreurs['motif'] ?? '') ?></div>
+                                        </div>
+                                        <button type="submit" class="btn btn-success btn-block">Attribuer</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Historique -->
+                        <div class="col-lg-7">
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-success">Historique des attributions (<?= count($attributions) ?>)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-hover" width="100%">
+                                            <thead>
+                                                <tr>
+                                                    <th>Utilisateur</th>
+                                                    <th>Badge</th>
+                                                    <th>Date</th>
+                                                    <th>Motif</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php if (empty($attributions)): ?>
+                                                    <tr><td colspan="5" class="text-center">Aucune attribution.</td></tr>
+                                                <?php endif; ?>
+                                                <?php foreach ($attributions as $a): ?>
+                                                    <tr>
+                                                        <td><?= e($a['utilisateurNom']) ?></td>
+                                                        <td><?= e($a['badgeNom']) ?></td>
+                                                        <td><?= e(date('d/m/Y', strtotime($a['dateAttribution']))) ?></td>
+                                                        <td><?= e($a['motif']) ?></td>
+                                                        <td>
+                                                            <form action="supprimerAttribution.php" method="POST" class="d-inline"
+                                                                  onsubmit="return confirm('Retirer ce badge à cet utilisateur ?');">
+                                                                <input type="hidden" name="id" value="<?= e($a['id']) ?>">
+                                                                <button type="submit" class="btn btn-danger btn-sm" title="Retirer"><i class="fas fa-trash"></i></button>
+                                                            </form>
+                                                        </td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
 
                 </div>
+                <script src="js/validation-module-utilisateurs.js"></script>
                 <!-- /.container-fluid -->
 
             </div>
@@ -475,10 +549,10 @@
                         <span aria-hidden="true">×</span>
                     </button>
                 </div>
-                <div class="modal-body">Select "Logout" below if you are ready to end your current session.</div>
+                <div class="modal-body">Cliquez sur « Se déconnecter » pour fermer votre session.</div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
-                    <a class="btn btn-primary" href="login.html">Logout</a>
+                    <a class="btn btn-primary" href="../FrontOffice/deconnexion.php">Se déconnecter</a>
                 </div>
             </div>
         </div>

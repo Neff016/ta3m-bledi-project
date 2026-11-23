@@ -1,3 +1,71 @@
+<?php
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/BadgeController.php';
+require_once __DIR__ . '/../../Controller/UploadHelper.php';
+
+requireAdmin();
+$badgeC = new BadgeController();
+
+// Ajout : formBadge.php     Modification : formBadge.php?id=3
+$id          = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+$modeEdition = (bool) $id;
+$existant    = null;
+
+if ($modeEdition) {
+    $existant = $badgeC->getBadge($id);
+    if (!$existant) {
+        setFlash("Ce badge n'existe pas.", 'danger');
+        header('Location: listeBadges.php');
+        exit;
+    }
+}
+
+$erreurs = [];
+$valeurs = $modeEdition
+    ? ['nom' => $existant['nom'], 'points' => (string) $existant['points'],
+       'description' => $existant['description'], 'critere' => $existant['critere']]
+    : ['nom' => '', 'points' => '', 'description' => '', 'critere' => ''];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $valeurs = [
+        'nom'         => trim($_POST['nom'] ?? ''),
+        'points'      => trim($_POST['points'] ?? ''),
+        'description' => trim($_POST['description'] ?? ''),
+        'critere'     => trim($_POST['critere'] ?? ''),
+    ];
+    $erreurs = $badgeC->validateBadge($valeurs, $modeEdition ? $id : null);
+
+    // Icône (facultative) : on l'enregistre seulement si le reste est correct
+    $icone = $existant['icone'] ?? null;
+    if (empty($erreurs) && fichierEnvoye($_FILES['icone'] ?? null)) {
+        $upload = uploadImage($_FILES['icone'], 'badges');
+        if ($upload['ok']) {
+            if ($modeEdition) {
+                supprimerImage($existant['icone'], 'badges');   // remplace l'ancienne
+            }
+            $icone = $upload['fichier'];
+        } else {
+            $erreurs['icone'] = $upload['erreur'];
+        }
+    }
+
+    if (empty($erreurs)) {
+        $badge = new Badge(
+            $valeurs['nom'], $valeurs['description'], $valeurs['critere'],
+            (int) $valeurs['points'], $icone, $modeEdition ? $id : null
+        );
+        if ($modeEdition) {
+            $badgeC->updateBadge($badge);
+            setFlash('Badge modifié avec succès.');
+        } else {
+            $badgeC->addBadge($badge);
+            setFlash('Badge ajouté avec succès.');
+        }
+        header('Location: listeBadges.php');
+        exit;
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -9,7 +77,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>SB Admin 2 - Blank</title>
+    <title>Taam Bledi - Badge</title>
 
     <!-- Custom fonts for this template-->
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
@@ -19,6 +87,7 @@
 
     <!-- Custom styles for this template-->
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
+    <link href="css/module-utilisateurs.css" rel="stylesheet">
 
 </head>
 
@@ -33,9 +102,9 @@
             <!-- Sidebar - Brand -->
             <a class="sidebar-brand d-flex align-items-center justify-content-center" href="index.html">
                 <div class="sidebar-brand-icon rotate-n-15">
-                    <i class="fas fa-laugh-wink"></i>
+                    <i class="fas fa-seedling"></i>
                 </div>
-                <div class="sidebar-brand-text mx-3">SB Admin <sup>2</sup></div>
+                <div class="sidebar-brand-text mx-3">Taam Bledi</div>
             </a>
 
             <!-- Divider -->
@@ -55,17 +124,17 @@
     Utilisateurs et Badges
 </div>
 <li class="nav-item">
-    <a class="nav-link" href="listeUtilisateurs.html">
+    <a class="nav-link" href="listeUtilisateurs.php">
         <i class="fas fa-fw fa-users"></i>
         <span>Utilisateurs</span></a>
 </li>
-<li class="nav-item">
-    <a class="nav-link" href="listeBadges.html">
+<li class="nav-item active">
+    <a class="nav-link" href="listeBadges.php">
         <i class="fas fa-fw fa-award"></i>
         <span>Badges</span></a>
 </li>
 <li class="nav-item">
-    <a class="nav-link" href="attribuerBadge.html">
+    <a class="nav-link" href="attribuerBadge.php">
         <i class="fas fa-fw fa-gift"></i>
         <span>Attribuer un badge</span></a>
 </li>
@@ -119,13 +188,13 @@
             </div>
 
             <!-- Nav Item - Pages Collapse Menu -->
-            <li class="nav-item active">
+            <li class="nav-item">
                 <a class="nav-link" href="#" data-toggle="collapse" data-target="#collapsePages" aria-expanded="true"
                     aria-controls="collapsePages">
                     <i class="fas fa-fw fa-folder"></i>
                     <span>Pages</span>
                 </a>
-                <div id="collapsePages" class="collapse show" aria-labelledby="headingPages"
+                <div id="collapsePages" class="collapse" aria-labelledby="headingPages"
                     data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Login Screens:</h6>
@@ -135,7 +204,7 @@
                         <div class="collapse-divider"></div>
                         <h6 class="collapse-header">Other Pages:</h6>
                         <a class="collapse-item" href="404.html">404 Page</a>
-                        <a class="collapse-item active" href="blank.html">Blank Page</a>
+                        <a class="collapse-item" href="blank.html">Blank Page</a>
                     </div>
                 </div>
             </li>
@@ -343,7 +412,7 @@
                         <li class="nav-item dropdown no-arrow">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <span class="mr-2 d-none d-lg-inline text-gray-600 small">Douglas McGee</span>
+                                <span class="mr-2 d-none d-lg-inline text-gray-600 small"><?= e(($_SESSION['prenom'] ?? '') . ' ' . ($_SESSION['nom'] ?? '')) ?></span>
                                 <img class="img-profile rounded-circle"
                                     src="img/undraw_profile.svg">
                             </a>
@@ -378,46 +447,61 @@
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
 
-                    <!-- Page Heading -->
-                    <h1 class="h3 mb-4 text-gray-800">Ajouter / Modifier un badge</h1>
+                    <h1 class="h3 mb-4 text-gray-800"><?= $modeEdition ? 'Modifier un badge' : 'Ajouter un badge' ?></h1>
 
-<div class="card shadow mb-4">
-  <div class="card-header py-3">
-    <h6 class="m-0 font-weight-bold text-success">Informations du badge</h6>
-  </div>
-  <div class="card-body">
-    <form id="formBadge">
-      <div class="form-row">
-        <div class="form-group col-md-6">
-          <label for="nom">Nom du badge</label>
-          <input type="text" class="form-control" id="nom" name="nom">
-        </div>
-        <div class="form-group col-md-6">
-          <label for="points">Points</label>
-          <input type="number" class="form-control" id="points" name="points">
-        </div>
-      </div>
-      <div class="form-group">
-        <label for="description">Description</label>
-        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
-      </div>
-      <div class="form-row">
-        <div class="form-group col-md-6">
-          <label for="critere">Critère d'obtention</label>
-          <input type="text" class="form-control" id="critere" name="critere" placeholder="Ex : 5 plantations ajoutées">
-        </div>
-        <div class="form-group col-md-6">
-          <label for="icone">Icône</label>
-          <input type="file" class="form-control-file" id="icone" name="icone">
-        </div>
-      </div>
-      <button type="submit" class="btn btn-success">Enregistrer</button>
-      <a href="listeBadges.html" class="btn btn-secondary">Annuler</a>
-    </form>
-  </div>
-</div>
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-success">Informations du badge</h6>
+                        </div>
+                        <div class="card-body">
+                            <form id="formBadge" action="" method="POST" enctype="multipart/form-data" novalidate>
+                                <div class="form-row">
+                                    <div class="form-group col-md-6">
+                                        <label for="nom">Nom du badge</label>
+                                        <input type="text" class="form-control <?= isset($erreurs['nom']) ? 'is-invalid' : '' ?>"
+                                               id="nom" name="nom" value="<?= e($valeurs['nom']) ?>">
+                                        <div class="ub-erreur" id="erreur-nom"><?= e($erreurs['nom'] ?? '') ?></div>
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label for="points">Points</label>
+                                        <input type="text" class="form-control <?= isset($erreurs['points']) ? 'is-invalid' : '' ?>"
+                                               id="points" name="points" value="<?= e($valeurs['points']) ?>" placeholder="Ex : 10">
+                                        <div class="ub-erreur" id="erreur-points"><?= e($erreurs['points'] ?? '') ?></div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="description">Description</label>
+                                    <textarea class="form-control <?= isset($erreurs['description']) ? 'is-invalid' : '' ?>"
+                                              id="description" name="description" rows="3"><?= e($valeurs['description']) ?></textarea>
+                                    <div class="ub-erreur" id="erreur-description"><?= e($erreurs['description'] ?? '') ?></div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group col-md-6">
+                                        <label for="critere">Critère d'obtention</label>
+                                        <input type="text" class="form-control <?= isset($erreurs['critere']) ? 'is-invalid' : '' ?>"
+                                               id="critere" name="critere" value="<?= e($valeurs['critere']) ?>" placeholder="Ex : 5 plantations ajoutées">
+                                        <div class="ub-erreur" id="erreur-critere"><?= e($erreurs['critere'] ?? '') ?></div>
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label for="icone">Icône (facultatif : JPG, PNG, WEBP, GIF, 2 Mo max)</label>
+                                        <?php if (!empty($existant['icone'])): ?>
+                                            <div class="mb-2">
+                                                <img src="../FrontOffice/assets/img/uploads/badges/<?= e($existant['icone']) ?>" alt="" class="ub-icone-table">
+                                                <span class="small text-muted ml-2">Icône actuelle</span>
+                                            </div>
+                                        <?php endif; ?>
+                                        <input type="file" class="form-control-file" id="icone" name="icone">
+                                        <div class="ub-erreur" id="erreur-icone"><?= e($erreurs['icone'] ?? '') ?></div>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-success">Enregistrer</button>
+                                <a href="listeBadges.php" class="btn btn-secondary">Annuler</a>
+                            </form>
+                        </div>
+                    </div>
 
                 </div>
+                <script src="js/validation-module-utilisateurs.js"></script>
                 <!-- /.container-fluid -->
 
             </div>
@@ -455,10 +539,10 @@
                         <span aria-hidden="true">×</span>
                     </button>
                 </div>
-                <div class="modal-body">Select "Logout" below if you are ready to end your current session.</div>
+                <div class="modal-body">Cliquez sur « Se déconnecter » pour fermer votre session.</div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
-                    <a class="btn btn-primary" href="login.html">Logout</a>
+                    <a class="btn btn-primary" href="../FrontOffice/deconnexion.php">Se déconnecter</a>
                 </div>
             </div>
         </div>

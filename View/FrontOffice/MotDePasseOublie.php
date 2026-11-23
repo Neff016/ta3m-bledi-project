@@ -1,10 +1,39 @@
+<?php
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/UtilisateurController.php';
+
+$utilisateurC = new UtilisateurController();
+$erreurs      = [];
+$email        = '';
+$envoye       = false;
+$lienDemo     = null;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = trim($_POST['email'] ?? '');
+    if ($email === '') {
+        $erreurs['email'] = "L'email est obligatoire.";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $erreurs['email'] = "L'email n'est pas valide (exemple@mail.com).";
+    }
+
+    if (empty($erreurs)) {
+        $jeton  = $utilisateurC->creerJetonReinitialisation($email);
+        $envoye = true;   // même message que l'email existe ou non (sécurité)
+        if ($jeton) {
+            // Pas de serveur mail sur XAMPP : on affiche le lien pour la démonstration.
+            // En production, ce lien serait envoyé par email (fonction mail() / PHPMailer).
+            $lienDemo = 'ReinitialiserMotDePasse.php?jeton=' . $jeton;
+        }
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>About - AgriCulture Bootstrap Template</title>
+  <title>Taam Bledi - Mot de passe oublié</title>
   <meta name="description" content="">
   <meta name="keywords" content="">
 
@@ -26,6 +55,7 @@
 
   <!-- Main CSS File -->
   <link href="assets/css/main.css" rel="stylesheet">
+  <link href="assets/css/utilisateurs.css" rel="stylesheet">
 
   <!-- =======================================================
   * Template Name: AgriCulture
@@ -50,25 +80,17 @@
       <nav id="navmenu" class="navmenu">
         <ul>
           <li><a href="index.html">Home</a></li>
-          <li><a href="about.html" class="active">About Us</a></li>
+          <li><a href="about.html" >About Us</a></li>
           <li><a href="services.html">Our Services</a></li>
           <li><a href="testimonials.html">Testimonials</a></li>
           <li><a href="blog.html">Blog</a></li>
-          <li class="dropdown"><a href="#"><span>Dropdown</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+                    <li class="dropdown"><a href="#"><span>Mon compte</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
             <ul>
-              <li><a href="#">Dropdown 1</a></li>
-              <li class="dropdown"><a href="#"><span>Deep Dropdown</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
-                <ul>
-                  <li><a href="#">Deep Dropdown 1</a></li>
-                  <li><a href="#">Deep Dropdown 2</a></li>
-                  <li><a href="#">Deep Dropdown 3</a></li>
-                  <li><a href="#">Deep Dropdown 4</a></li>
-                  <li><a href="#">Deep Dropdown 5</a></li>
-                </ul>
-              </li>
-              <li><a href="#">Dropdown 2</a></li>
-              <li><a href="#">Dropdown 3</a></li>
-              <li><a href="#">Dropdown 4</a></li>
+              <li><a href="profil.php">Mon profil</a></li>
+              <li><a href="mesBadges.php">Mes badges</a></li>
+              <li><a href="connexion.php">Connexion</a></li>
+              <li><a href="inscription.php">Inscription</a></li>
+              <li><a href="deconnexion.php">Déconnexion</a></li>
             </ul>
           </li>
           <li><a href="contact.html">Contact</a></li>
@@ -78,34 +100,51 @@
 
     </div>
   </header>
-<main class="main">
 
-  <!-- Page Title -->
-<div class="page-title dark-background">
-  <div class="container position-relative">
-    <h1>Mot De Passe Oublie</h1>
-  </div>
-</div>
+  <main class="main">
+    <section class="ub-page">
+      <div class="container">
 
-<!-- Formulaire du mot de passe oublie -->
-<section class="section">
-  <div class="container" style="max-width: 450px;">
-    <p class="text-center mb-4">
-      Entrez votre adresse email. Vous recevrez un lien pour réinitialiser votre mot de passe.
-    </p>
-    <form id="formMotDePasseOublie">
-      <div class="mb-3">
-        <label for="email" class="form-label">Email</label>
-        <input type="email" class="form-control" id="email" name="email" placeholder="exemple@mail.com">
+        <div class="ub-hero">
+          <span class="ub-hero-label">Espace utilisateur</span>
+          <h1>Mot de passe oublié</h1>
+        </div>
+
+        <div class="ub-card">
+          <?php if ($envoye): ?>
+            <div class="alert alert-success">
+              Si un compte existe avec cet email, un lien de réinitialisation (valable 1 heure) vient d'être envoyé.
+            </div>
+            <?php if ($lienDemo): ?>
+              <div class="alert alert-warning">
+                <strong>Mode démonstration</strong> (pas de serveur mail sur XAMPP) :<br>
+                <a href="<?= e($lienDemo) ?>">Ouvrir le lien de réinitialisation</a>
+              </div>
+            <?php endif; ?>
+            <p class="text-center mb-0"><a href="connexion.php">Retour à la connexion</a></p>
+          <?php else: ?>
+            <p class="text-center mb-4">
+              Entrez votre adresse email. Vous recevrez un lien pour réinitialiser votre mot de passe.
+            </p>
+            <form id="formMotDePasseOublie" action="" method="POST" novalidate>
+              <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="text" class="form-control <?= isset($erreurs['email']) ? 'is-invalid' : '' ?>"
+                       id="email" name="email" value="<?= e($email) ?>" placeholder="exemple@mail.com">
+                <div class="ub-erreur" id="erreur-email"><?= e($erreurs['email'] ?? '') ?></div>
+              </div>
+              <button type="submit" class="ub-btn">Envoyer le lien</button>
+              <p class="text-center mt-3 mb-0">
+                <a href="connexion.php">Retour à la connexion</a>
+              </p>
+            </form>
+          <?php endif; ?>
+        </div>
+
       </div>
-      <button type="submit" class="btn btn-success w-100">Envoyer le lien</button>
-      <p class="text-center mt-3">
-        <a href="connexion.html">Retour à la connexion</a>
-      </p>
-    </form>
-  </div>
-</section>
-</main>
+    </section>
+    <script src="assets/js/validation-utilisateurs.js"></script>
+  </main>
 
   <footer id="footer" class="footer dark-background">
 

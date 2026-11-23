@@ -1,3 +1,73 @@
+<?php
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/UtilisateurController.php';
+
+$idAdmin      = requireAdmin();
+$utilisateurC = new UtilisateurController();
+
+// Ajout : formUtilisateur.php     Modification : formUtilisateur.php?id=5
+$id          = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+$modeEdition = (bool) $id;
+$existant    = null;
+
+if ($modeEdition) {
+    $existant = $utilisateurC->getUtilisateur($id);
+    if (!$existant) {
+        setFlash("Cet utilisateur n'existe pas.", 'danger');
+        header('Location: listeUtilisateurs.php');
+        exit;
+    }
+}
+$estMoi = $modeEdition && $id === $idAdmin;   // l'admin ne peut pas changer son propre rôle / statut
+
+$erreurs = [];
+$valeurs = $modeEdition
+    ? ['nom' => $existant['nom'], 'prenom' => $existant['prenom'], 'email' => $existant['email'],
+       'telephone' => $existant['telephone'] ?? '', 'role' => $existant['role'], 'statut' => $existant['statut']]
+    : ['nom' => '', 'prenom' => '', 'email' => '', 'telephone' => '', 'role' => 'AGRICULTEUR', 'statut' => 'ACTIF'];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $valeurs = [
+        'nom'       => trim($_POST['nom'] ?? ''),
+        'prenom'    => trim($_POST['prenom'] ?? ''),
+        'email'     => trim($_POST['email'] ?? ''),
+        'telephone' => trim($_POST['telephone'] ?? ''),
+        'role'      => $estMoi ? $existant['role'] : ($_POST['role'] ?? ''),
+        'statut'    => $estMoi ? $existant['statut'] : ($_POST['statut'] ?? ''),
+    ];
+    $motDePasse   = $_POST['motDePasse'] ?? '';
+    $confirmation = $_POST['confirmation'] ?? '';
+
+    $erreurs = $utilisateurC->validateInfos($valeurs, $modeEdition ? $id : null)
+             + $utilisateurC->validateRoleStatut($valeurs);
+
+    // Mot de passe : obligatoire à l'ajout, facultatif en modification (vide = inchangé)
+    if (!$modeEdition || $motDePasse !== '' || $confirmation !== '') {
+        $erreurs += $utilisateurC->validateMotDePasse($motDePasse, $confirmation);
+    }
+
+    if (empty($erreurs)) {
+        if ($modeEdition) {
+            $utilisateurC->updateUtilisateur(new Utilisateur(
+                $valeurs['nom'], $valeurs['prenom'], $valeurs['email'], $valeurs['telephone'],
+                '', $valeurs['role'], $valeurs['statut'], null, $id
+            ));
+            if ($motDePasse !== '') {
+                $utilisateurC->updateMotDePasse($id, $motDePasse);
+            }
+            setFlash('Utilisateur modifié avec succès.');
+        } else {
+            $utilisateurC->addUtilisateur(new Utilisateur(
+                $valeurs['nom'], $valeurs['prenom'], $valeurs['email'], $valeurs['telephone'],
+                password_hash($motDePasse, PASSWORD_DEFAULT), $valeurs['role'], $valeurs['statut']
+            ));
+            setFlash('Utilisateur ajouté avec succès.');
+        }
+        header('Location: listeUtilisateurs.php');
+        exit;
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -9,7 +79,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>SB Admin 2 - Blank</title>
+    <title>Taam Bledi - Utilisateur</title>
 
     <!-- Custom fonts for this template-->
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
@@ -19,6 +89,7 @@
 
     <!-- Custom styles for this template-->
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
+    <link href="css/module-utilisateurs.css" rel="stylesheet">
 
 </head>
 
@@ -33,9 +104,9 @@
             <!-- Sidebar - Brand -->
             <a class="sidebar-brand d-flex align-items-center justify-content-center" href="index.html">
                 <div class="sidebar-brand-icon rotate-n-15">
-                    <i class="fas fa-laugh-wink"></i>
+                    <i class="fas fa-seedling"></i>
                 </div>
-                <div class="sidebar-brand-text mx-3">SB Admin <sup>2</sup></div>
+                <div class="sidebar-brand-text mx-3">Taam Bledi</div>
             </a>
 
             <!-- Divider -->
@@ -54,18 +125,18 @@
 <div class="sidebar-heading">
     Utilisateurs et Badges
 </div>
-<li class="nav-item">
-    <a class="nav-link" href="listeUtilisateurs.html">
+<li class="nav-item active">
+    <a class="nav-link" href="listeUtilisateurs.php">
         <i class="fas fa-fw fa-users"></i>
         <span>Utilisateurs</span></a>
 </li>
 <li class="nav-item">
-    <a class="nav-link" href="listeBadges.html">
+    <a class="nav-link" href="listeBadges.php">
         <i class="fas fa-fw fa-award"></i>
         <span>Badges</span></a>
 </li>
 <li class="nav-item">
-    <a class="nav-link" href="attribuerBadge.html">
+    <a class="nav-link" href="attribuerBadge.php">
         <i class="fas fa-fw fa-gift"></i>
         <span>Attribuer un badge</span></a>
 </li>
@@ -119,13 +190,13 @@
             </div>
 
             <!-- Nav Item - Pages Collapse Menu -->
-            <li class="nav-item active">
+            <li class="nav-item">
                 <a class="nav-link" href="#" data-toggle="collapse" data-target="#collapsePages" aria-expanded="true"
                     aria-controls="collapsePages">
                     <i class="fas fa-fw fa-folder"></i>
                     <span>Pages</span>
                 </a>
-                <div id="collapsePages" class="collapse show" aria-labelledby="headingPages"
+                <div id="collapsePages" class="collapse" aria-labelledby="headingPages"
                     data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Login Screens:</h6>
@@ -135,7 +206,7 @@
                         <div class="collapse-divider"></div>
                         <h6 class="collapse-header">Other Pages:</h6>
                         <a class="collapse-item" href="404.html">404 Page</a>
-                        <a class="collapse-item active" href="blank.html">Blank Page</a>
+                        <a class="collapse-item" href="blank.html">Blank Page</a>
                     </div>
                 </div>
             </li>
@@ -343,7 +414,7 @@
                         <li class="nav-item dropdown no-arrow">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <span class="mr-2 d-none d-lg-inline text-gray-600 small">Douglas McGee</span>
+                                <span class="mr-2 d-none d-lg-inline text-gray-600 small"><?= e(($_SESSION['prenom'] ?? '') . ' ' . ($_SESSION['nom'] ?? '')) ?></span>
                                 <img class="img-profile rounded-circle"
                                     src="img/undraw_profile.svg">
                             </a>
@@ -378,62 +449,87 @@
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
 
-                    <!-- Page Heading -->
-                    <h1 class="h3 mb-4 text-gray-800">Ajouter / Modifier un utilisateur</h1>
+                    <h1 class="h3 mb-4 text-gray-800"><?= $modeEdition ? 'Modifier un utilisateur' : 'Ajouter un utilisateur' ?></h1>
 
-<div class="card shadow mb-4">
-  <div class="card-header py-3">
-    <h6 class="m-0 font-weight-bold text-success">Informations de l'utilisateur</h6>
-  </div>
-  <div class="card-body">
-    <form id="formUtilisateur">
-      <div class="form-row">
-        <div class="form-group col-md-6">
-          <label for="nom">Nom</label>
-          <input type="text" class="form-control" id="nom" name="nom">
-        </div>
-        <div class="form-group col-md-6">
-          <label for="prenom">Prénom</label>
-          <input type="text" class="form-control" id="prenom" name="prenom">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group col-md-6">
-          <label for="email">Email</label>
-          <input type="email" class="form-control" id="email" name="email">
-        </div>
-        <div class="form-group col-md-6">
-          <label for="telephone">Téléphone</label>
-          <input type="tel" class="form-control" id="telephone" name="telephone">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group col-md-6">
-          <label for="role">Rôle</label>
-          <select id="role" name="role" class="form-control">
-            <option value="utilisateur">Utilisateur</option>
-            <option value="admin">Admin</option>
-          </select>
-        </div>
-        <div class="form-group col-md-6">
-          <label for="statut">Statut</label>
-          <select id="statut" name="statut" class="form-control">
-            <option value="actif">Actif</option>
-            <option value="bloque">Bloqué</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group">
-        <label for="motDePasse">Mot de passe</label>
-        <input type="password" class="form-control" id="motDePasse" name="motDePasse">
-      </div>
-      <button type="submit" class="btn btn-success">Enregistrer</button>
-      <a href="listeUtilisateurs.html" class="btn btn-secondary">Annuler</a>
-    </form>
-  </div>
-</div>
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-success">Informations de l'utilisateur</h6>
+                        </div>
+                        <div class="card-body">
+                            <form id="formUtilisateur" action="" method="POST" novalidate data-edition="<?= $modeEdition ? '1' : '0' ?>">
+                                <div class="form-row">
+                                    <div class="form-group col-md-6">
+                                        <label for="nom">Nom</label>
+                                        <input type="text" class="form-control <?= isset($erreurs['nom']) ? 'is-invalid' : '' ?>"
+                                               id="nom" name="nom" value="<?= e($valeurs['nom']) ?>">
+                                        <div class="ub-erreur" id="erreur-nom"><?= e($erreurs['nom'] ?? '') ?></div>
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label for="prenom">Prénom</label>
+                                        <input type="text" class="form-control <?= isset($erreurs['prenom']) ? 'is-invalid' : '' ?>"
+                                               id="prenom" name="prenom" value="<?= e($valeurs['prenom']) ?>">
+                                        <div class="ub-erreur" id="erreur-prenom"><?= e($erreurs['prenom'] ?? '') ?></div>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group col-md-6">
+                                        <label for="email">Email</label>
+                                        <input type="text" class="form-control <?= isset($erreurs['email']) ? 'is-invalid' : '' ?>"
+                                               id="email" name="email" value="<?= e($valeurs['email']) ?>">
+                                        <div class="ub-erreur" id="erreur-email"><?= e($erreurs['email'] ?? '') ?></div>
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label for="telephone">Téléphone</label>
+                                        <input type="text" class="form-control <?= isset($erreurs['telephone']) ? 'is-invalid' : '' ?>"
+                                               id="telephone" name="telephone" value="<?= e($valeurs['telephone']) ?>" placeholder="12345678">
+                                        <div class="ub-erreur" id="erreur-telephone"><?= e($erreurs['telephone'] ?? '') ?></div>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group col-md-6">
+                                        <label for="role">Rôle</label>
+                                        <select id="role" name="role" class="form-control" <?= $estMoi ? 'disabled' : '' ?>>
+                                            <?php foreach (UtilisateurController::ROLES as $valeur => $libelle): ?>
+                                                <option value="<?= e($valeur) ?>" <?= $valeurs['role'] === $valeur ? 'selected' : '' ?>><?= e($libelle) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <div class="ub-erreur" id="erreur-role"><?= e($erreurs['role'] ?? '') ?></div>
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label for="statut">Statut</label>
+                                        <select id="statut" name="statut" class="form-control" <?= $estMoi ? 'disabled' : '' ?>>
+                                            <?php foreach (UtilisateurController::STATUTS as $valeur => $libelle): ?>
+                                                <option value="<?= e($valeur) ?>" <?= $valeurs['statut'] === $valeur ? 'selected' : '' ?>><?= e($libelle) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <div class="ub-erreur" id="erreur-statut"><?= e($erreurs['statut'] ?? '') ?></div>
+                                    </div>
+                                </div>
+                                <?php if ($estMoi): ?>
+                                    <p class="small text-muted">Vous ne pouvez pas changer votre propre rôle ni votre statut.</p>
+                                <?php endif; ?>
+                                <div class="form-row">
+                                    <div class="form-group col-md-6">
+                                        <label for="motDePasse">Mot de passe <?= $modeEdition ? '(laisser vide pour ne pas changer)' : '' ?></label>
+                                        <input type="password" class="form-control <?= isset($erreurs['motDePasse']) ? 'is-invalid' : '' ?>"
+                                               id="motDePasse" name="motDePasse">
+                                        <div class="ub-erreur" id="erreur-motDePasse"><?= e($erreurs['motDePasse'] ?? '') ?></div>
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label for="confirmation">Confirmer le mot de passe</label>
+                                        <input type="password" class="form-control <?= isset($erreurs['confirmation']) ? 'is-invalid' : '' ?>"
+                                               id="confirmation" name="confirmation">
+                                        <div class="ub-erreur" id="erreur-confirmation"><?= e($erreurs['confirmation'] ?? '') ?></div>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-success">Enregistrer</button>
+                                <a href="listeUtilisateurs.php" class="btn btn-secondary">Annuler</a>
+                            </form>
+                        </div>
+                    </div>
 
                 </div>
+                <script src="js/validation-module-utilisateurs.js"></script>
                 <!-- /.container-fluid -->
 
             </div>
@@ -471,10 +567,10 @@
                         <span aria-hidden="true">×</span>
                     </button>
                 </div>
-                <div class="modal-body">Select "Logout" below if you are ready to end your current session.</div>
+                <div class="modal-body">Cliquez sur « Se déconnecter » pour fermer votre session.</div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
-                    <a class="btn btn-primary" href="login.html">Logout</a>
+                    <a class="btn btn-primary" href="../FrontOffice/deconnexion.php">Se déconnecter</a>
                 </div>
             </div>
         </div>

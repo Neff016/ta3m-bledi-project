@@ -1,3 +1,12 @@
+<?php
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/UtilisateurController.php';
+
+$idAdmin      = requireAdmin();
+$recherche    = trim($_GET['q'] ?? '');
+$utilisateurs = (new UtilisateurController())->listUtilisateurs($recherche);
+$flash        = getFlash();
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -9,7 +18,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>SB Admin 2 - Blank</title>
+    <title>Taam Bledi - Utilisateurs</title>
 
     <!-- Custom fonts for this template-->
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
@@ -19,6 +28,7 @@
 
     <!-- Custom styles for this template-->
     <link href="css/sb-admin-2.min.css" rel="stylesheet">
+    <link href="css/module-utilisateurs.css" rel="stylesheet">
 
 </head>
 
@@ -33,9 +43,9 @@
             <!-- Sidebar - Brand -->
             <a class="sidebar-brand d-flex align-items-center justify-content-center" href="index.html">
                 <div class="sidebar-brand-icon rotate-n-15">
-                    <i class="fas fa-laugh-wink"></i>
+                    <i class="fas fa-seedling"></i>
                 </div>
-                <div class="sidebar-brand-text mx-3">SB Admin <sup>2</sup></div>
+                <div class="sidebar-brand-text mx-3">Taam Bledi</div>
             </a>
 
             <!-- Divider -->
@@ -50,22 +60,22 @@
 
             <!-- Divider -->
             <hr class="sidebar-divider">
-             <!-- Module Utilisateurs et Badges -->
+            <!-- Module Utilisateurs et Badges -->
 <div class="sidebar-heading">
     Utilisateurs et Badges
 </div>
-<li class="nav-item">
-    <a class="nav-link" href="listeUtilisateurs.html">
+<li class="nav-item active">
+    <a class="nav-link" href="listeUtilisateurs.php">
         <i class="fas fa-fw fa-users"></i>
         <span>Utilisateurs</span></a>
 </li>
 <li class="nav-item">
-    <a class="nav-link" href="listeBadges.html">
+    <a class="nav-link" href="listeBadges.php">
         <i class="fas fa-fw fa-award"></i>
         <span>Badges</span></a>
 </li>
 <li class="nav-item">
-    <a class="nav-link" href="attribuerBadge.html">
+    <a class="nav-link" href="attribuerBadge.php">
         <i class="fas fa-fw fa-gift"></i>
         <span>Attribuer un badge</span></a>
 </li>
@@ -119,13 +129,13 @@
             </div>
 
             <!-- Nav Item - Pages Collapse Menu -->
-            <li class="nav-item active">
+            <li class="nav-item">
                 <a class="nav-link" href="#" data-toggle="collapse" data-target="#collapsePages" aria-expanded="true"
                     aria-controls="collapsePages">
                     <i class="fas fa-fw fa-folder"></i>
                     <span>Pages</span>
                 </a>
-                <div id="collapsePages" class="collapse show" aria-labelledby="headingPages"
+                <div id="collapsePages" class="collapse" aria-labelledby="headingPages"
                     data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Login Screens:</h6>
@@ -135,7 +145,7 @@
                         <div class="collapse-divider"></div>
                         <h6 class="collapse-header">Other Pages:</h6>
                         <a class="collapse-item" href="404.html">404 Page</a>
-                        <a class="collapse-item active" href="blank.html">Blank Page</a>
+                        <a class="collapse-item" href="blank.html">Blank Page</a>
                     </div>
                 </div>
             </li>
@@ -343,7 +353,7 @@
                         <li class="nav-item dropdown no-arrow">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <span class="mr-2 d-none d-lg-inline text-gray-600 small">Douglas McGee</span>
+                                <span class="mr-2 d-none d-lg-inline text-gray-600 small"><?= e(($_SESSION['prenom'] ?? '') . ' ' . ($_SESSION['nom'] ?? '')) ?></span>
                                 <img class="img-profile rounded-circle"
                                     src="img/undraw_profile.svg">
                             </a>
@@ -378,86 +388,101 @@
                 <!-- Begin Page Content -->
                 <div class="container-fluid">
 
-                    <!-- Page Heading -->
-                    <h1 class="h3 mb-4 text-gray-800">Attribuer un badge</h1>
+                    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                        <h1 class="h3 mb-0 text-gray-800">Gestion des utilisateurs</h1>
+                        <a href="formUtilisateur.php" class="btn btn-success btn-sm shadow-sm">
+                            <i class="fas fa-plus fa-sm text-white-50"></i> Ajouter un utilisateur
+                        </a>
+                    </div>
 
-<div class="row">
+                    <?php if ($flash): ?>
+                        <div class="alert alert-<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
+                    <?php endif; ?>
 
-  <!-- Formulaire d'attribution -->
-  <div class="col-lg-5">
-    <div class="card shadow mb-4">
-      <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-success">Nouvelle attribution</h6>
-      </div>
-      <div class="card-body">
-        <form id="formAttribution">
-          <div class="form-group">
-            <label for="idUtilisateur">Utilisateur</label>
-            <select id="idUtilisateur" name="idUtilisateur" class="form-control">
-              <option value="">-- Choisir un utilisateur --</option>
-              <option value="1">Yomna Ghannem</option>
-              <option value="2">Amine Ben Salah</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="idBadge">Badge</label>
-            <select id="idBadge" name="idBadge" class="form-control">
-              <option value="">-- Choisir un badge --</option>
-              <option value="1">Premier jardinier</option>
-              <option value="2">Échangeur solidaire</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="motif">Motif</label>
-            <textarea class="form-control" id="motif" name="motif" rows="2"></textarea>
-          </div>
-          <button type="submit" class="btn btn-success btn-block">Attribuer</button>
-        </form>
-      </div>
-    </div>
-  </div>
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-success">Liste des utilisateurs (<?= count($utilisateurs) ?>)</h6>
+                        </div>
+                        <div class="card-body">
 
-  <!-- Historique -->
-  <div class="col-lg-7">
-    <div class="card shadow mb-4">
-      <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-success">Historique des attributions</h6>
-      </div>
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-bordered table-hover" width="100%">
-            <thead>
-              <tr>
-                <th>Utilisateur</th>
-                <th>Badge</th>
-                <th>Date</th>
-                <th>Motif</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Yomna Ghannem</td>
-                <td>Premier jardinier</td>
-                <td>10/11/2026</td>
-                <td>Première plantation</td>
-                <td><button class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button></td>
-              </tr>
-              <tr>
-                <td>Amine Ben Salah</td>
-                <td>Échangeur solidaire</td>
-                <td>12/11/2026</td>
-                <td>Premier échange</td>
-                <td><button class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
+                            <form method="GET" class="form-row mb-3">
+                                <div class="col-md-5 mb-2">
+                                    <input type="text" name="q" class="form-control" value="<?= e($recherche) ?>"
+                                           placeholder="Rechercher par nom, prénom ou email...">
+                                </div>
+                                <div class="col-md-auto mb-2">
+                                    <button type="submit" class="btn btn-success"><i class="fas fa-search"></i> Rechercher</button>
+                                    <?php if ($recherche !== ''): ?>
+                                        <a href="listeUtilisateurs.php" class="btn btn-light">Effacer</a>
+                                    <?php endif; ?>
+                                </div>
+                            </form>
 
-</div>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover" width="100%">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Nom</th>
+                                            <th>Prénom</th>
+                                            <th>Email</th>
+                                            <th>Téléphone</th>
+                                            <th>Rôle</th>
+                                            <th>Statut</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php if (empty($utilisateurs)): ?>
+                                            <tr><td colspan="8" class="text-center">Aucun utilisateur trouvé.</td></tr>
+                                        <?php endif; ?>
+                                        <?php foreach ($utilisateurs as $u): ?>
+                                            <?php $moi = (int) $u['id'] === $idAdmin; ?>
+                                            <tr>
+                                                <td><?= e($u['id']) ?></td>
+                                                <td><?= e($u['nom']) ?></td>
+                                                <td><?= e($u['prenom']) ?></td>
+                                                <td><?= e($u['email']) ?></td>
+                                                <td><?= e($u['telephone'] ?? '-') ?></td>
+                                                <td>
+                                                    <span class="badge badge-<?= $u['role'] === 'ADMIN' ? 'primary' : 'secondary' ?>">
+                                                        <?= e(UtilisateurController::ROLES[$u['role']] ?? $u['role']) ?>
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge badge-<?= $u['statut'] === 'ACTIF' ? 'success' : 'danger' ?>">
+                                                        <?= e(UtilisateurController::STATUTS[$u['statut']] ?? $u['statut']) ?>
+                                                    </span>
+                                                </td>
+                                                <td class="text-nowrap">
+                                                    <a href="formUtilisateur.php?id=<?= e($u['id']) ?>" class="btn btn-warning btn-sm" title="Modifier">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <?php if (!$moi): ?>
+                                                        <form action="changerStatutUtilisateur.php" method="POST" class="d-inline">
+                                                            <input type="hidden" name="id" value="<?= e($u['id']) ?>">
+                                                            <?php if ($u['statut'] === 'ACTIF'): ?>
+                                                                <button type="submit" class="btn btn-secondary btn-sm" title="Bloquer"><i class="fas fa-lock"></i></button>
+                                                            <?php else: ?>
+                                                                <button type="submit" class="btn btn-info btn-sm" title="Débloquer"><i class="fas fa-unlock"></i></button>
+                                                            <?php endif; ?>
+                                                        </form>
+                                                        <form action="supprimerUtilisateur.php" method="POST" class="d-inline"
+                                                              onsubmit="return confirm('Supprimer cet utilisateur ? Ses terrains, récoltes et badges seront aussi supprimés.');">
+                                                            <input type="hidden" name="id" value="<?= e($u['id']) ?>">
+                                                            <button type="submit" class="btn btn-danger btn-sm" title="Supprimer"><i class="fas fa-trash"></i></button>
+                                                        </form>
+                                                    <?php else: ?>
+                                                        <span class="small text-muted ml-1">(vous)</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
 
                 </div>
                 <!-- /.container-fluid -->
@@ -497,10 +522,10 @@
                         <span aria-hidden="true">×</span>
                     </button>
                 </div>
-                <div class="modal-body">Select "Logout" below if you are ready to end your current session.</div>
+                <div class="modal-body">Cliquez sur « Se déconnecter » pour fermer votre session.</div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
-                    <a class="btn btn-primary" href="login.html">Logout</a>
+                    <a class="btn btn-primary" href="../FrontOffice/deconnexion.php">Se déconnecter</a>
                 </div>
             </div>
         </div>

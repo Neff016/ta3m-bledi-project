@@ -1,10 +1,31 @@
+<?php
+require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/UtilisateurController.php';
+
+$utilisateurC = new UtilisateurController();
+$jeton        = $_GET['jeton'] ?? ($_POST['jeton'] ?? '');
+$user         = $utilisateurC->getByJeton($jeton);   // false si lien invalide ou expiré
+$erreurs      = [];
+
+if ($user && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $erreurs = $utilisateurC->validateMotDePasse(
+        $_POST['nouveauMdp'] ?? '', $_POST['confirmMdp'] ?? '', 'nouveauMdp', 'confirmMdp'
+    );
+    if (empty($erreurs)) {
+        $utilisateurC->updateMotDePasse((int) $user['id'], $_POST['nouveauMdp']);  // efface aussi le jeton
+        setFlash('Mot de passe changé. Vous pouvez vous connecter.');
+        header('Location: connexion.php');
+        exit;
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>About - AgriCulture Bootstrap Template</title>
+  <title>Taam Bledi - Nouveau mot de passe</title>
   <meta name="description" content="">
   <meta name="keywords" content="">
 
@@ -26,6 +47,7 @@
 
   <!-- Main CSS File -->
   <link href="assets/css/main.css" rel="stylesheet">
+  <link href="assets/css/utilisateurs.css" rel="stylesheet">
 
   <!-- =======================================================
   * Template Name: AgriCulture
@@ -50,25 +72,17 @@
       <nav id="navmenu" class="navmenu">
         <ul>
           <li><a href="index.html">Home</a></li>
-          <li><a href="about.html" class="active">About Us</a></li>
+          <li><a href="about.html" >About Us</a></li>
           <li><a href="services.html">Our Services</a></li>
           <li><a href="testimonials.html">Testimonials</a></li>
           <li><a href="blog.html">Blog</a></li>
-          <li class="dropdown"><a href="#"><span>Dropdown</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+                    <li class="dropdown"><a href="#"><span>Mon compte</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
             <ul>
-              <li><a href="#">Dropdown 1</a></li>
-              <li class="dropdown"><a href="#"><span>Deep Dropdown</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
-                <ul>
-                  <li><a href="#">Deep Dropdown 1</a></li>
-                  <li><a href="#">Deep Dropdown 2</a></li>
-                  <li><a href="#">Deep Dropdown 3</a></li>
-                  <li><a href="#">Deep Dropdown 4</a></li>
-                  <li><a href="#">Deep Dropdown 5</a></li>
-                </ul>
-              </li>
-              <li><a href="#">Dropdown 2</a></li>
-              <li><a href="#">Dropdown 3</a></li>
-              <li><a href="#">Dropdown 4</a></li>
+              <li><a href="profil.php">Mon profil</a></li>
+              <li><a href="mesBadges.php">Mes badges</a></li>
+              <li><a href="connexion.php">Connexion</a></li>
+              <li><a href="inscription.php">Inscription</a></li>
+              <li><a href="deconnexion.php">Déconnexion</a></li>
             </ul>
           </li>
           <li><a href="contact.html">Contact</a></li>
@@ -78,53 +92,51 @@
 
     </div>
   </header>
-<main class="main">
 
-  <!-- Page Title -->
-<div class="page-title dark-background">
-  <div class="container position-relative">
-    <h1>Inscription</h1>
-  </div>
-</div>
+  <main class="main">
+    <section class="ub-page">
+      <div class="container">
 
-<!-- Formulaire de l'inscription-->
-<section class="section">
-  <div class="container" style="max-width: 550px;">
-    <form id="formInscription">
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <label for="nom" class="form-label">Nom</label>
-          <input type="text" class="form-control" id="nom" name="nom">
+        <div class="ub-hero">
+          <span class="ub-hero-label">Espace utilisateur</span>
+          <h1>Nouveau mot de passe</h1>
         </div>
-        <div class="col-md-6 mb-3">
-          <label for="prenom" class="form-label">Prénom</label>
-          <input type="text" class="form-control" id="prenom" name="prenom">
+
+        <div class="ub-card">
+          <?php if (!$user): ?>
+            <div class="alert alert-danger">Ce lien est invalide ou a expiré.</div>
+            <p class="text-center mb-0"><a href="MotDePasseOublie.php">Demander un nouveau lien</a></p>
+          <?php else: ?>
+            <p class="text-center mb-4">
+              Choisissez un nouveau mot de passe pour votre compte.
+            </p>
+            <form id="formReinitialiser" action="" method="POST" novalidate>
+              <input type="hidden" name="jeton" value="<?= e($jeton) ?>">
+              <div class="mb-3">
+                <label for="nouveauMdp" class="form-label">Nouveau mot de passe</label>
+                <input type="password" class="form-control <?= isset($erreurs['nouveauMdp']) ? 'is-invalid' : '' ?>"
+                       id="nouveauMdp" name="nouveauMdp">
+                <small class="text-muted">8 caractères minimum, avec au moins une lettre et un chiffre.</small>
+                <div class="ub-erreur" id="erreur-nouveauMdp"><?= e($erreurs['nouveauMdp'] ?? '') ?></div>
+              </div>
+              <div class="mb-3">
+                <label for="confirmMdp" class="form-label">Confirmer le mot de passe</label>
+                <input type="password" class="form-control <?= isset($erreurs['confirmMdp']) ? 'is-invalid' : '' ?>"
+                       id="confirmMdp" name="confirmMdp">
+                <div class="ub-erreur" id="erreur-confirmMdp"><?= e($erreurs['confirmMdp'] ?? '') ?></div>
+              </div>
+              <button type="submit" class="ub-btn">Changer le mot de passe</button>
+              <p class="text-center mt-3 mb-0">
+                <a href="connexion.php">Retour à la connexion</a>
+              </p>
+            </form>
+          <?php endif; ?>
         </div>
+
       </div>
-      <div class="mb-3">
-        <label for="email" class="form-label">Email</label>
-        <input type="email" class="form-control" id="email" name="email" placeholder="exemple@mail.com">
-      </div>
-      <div class="mb-3">
-        <label for="telephone" class="form-label">Téléphone</label>
-        <input type="tel" class="form-control" id="telephone" name="telephone" placeholder="12345678">
-      </div>
-      <div class="mb-3">
-        <label for="motDePasse" class="form-label">Mot de passe</label>
-        <input type="password" class="form-control" id="motDePasse" name="motDePasse">
-      </div>
-      <div class="mb-3">
-        <label for="confirmation" class="form-label">Confirmer le mot de passe</label>
-        <input type="password" class="form-control" id="confirmation" name="confirmation">
-      </div>
-      <button type="submit" class="btn btn-success w-100">S'inscrire</button>
-      <p class="text-center mt-3">
-        Déjà un compte ? <a href="connexion.html">Se connecter</a>
-      </p>
-    </form>
-  </div>
-</section>
-</main>
+    </section>
+    <script src="assets/js/validation-utilisateurs.js"></script>
+  </main>
 
   <footer id="footer" class="footer dark-background">
 
