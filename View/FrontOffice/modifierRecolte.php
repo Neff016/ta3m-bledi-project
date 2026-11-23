@@ -114,18 +114,27 @@ $texteBouton = 'Enregistrer';
 
       <nav id="navmenu" class="navmenu">
         <ul>
-          <li><a href="index.html" >Home</a></li>
+          <li><a href="index.html">Home</a></li>
           <li><a href="about.html">About Us</a></li>
           <li><a href="services.html">Our Services</a></li>
           <li><a href="testimonials.html">Testimonials</a></li>
           <li><a href="blog.html">Blog</a></li>
           <li class="dropdown"><a href="#"><span>Terrains &amp; Récoltes</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
             <ul>
-             <li><a href="mesTerrains.php">Mes terrains</a></li>
-             <li><a href="mesRecoltes.php" class="active">Mes récoltes</a></li>
-             <li><a href="recommandation.php">Recommandation IA</a></li>
-             <li><a href="consommationEau.php">Consommation d'eau</a></li>
-           </ul>
+              <li><a href="mesTerrains.php">Mes terrains</a></li>
+              <li><a href="mesRecoltes.php" class="active">Mes récoltes</a></li>
+              <li><a href="recommandation.php">Recommandation IA</a></li>
+              <li><a href="consommationEau.php">Consommation d'eau</a></li>
+            </ul>
+          </li>
+          <li class="dropdown"><a href="#"><span>Mon compte</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+            <ul>
+              <li><a href="profil.php">Mon profil</a></li>
+              <li><a href="mesBadges.php">Mes badges</a></li>
+              <li><a href="connexion.php">Connexion</a></li>
+              <li><a href="inscription.php">Inscription</a></li>
+              <li><a href="deconnexion.php">Déconnexion</a></li>
+            </ul>
           </li>
           <li><a href="contact.html">Contact</a></li>
         </ul>
