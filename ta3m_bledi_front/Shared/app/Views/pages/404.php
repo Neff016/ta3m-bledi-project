@@ -1,0 +1,1 @@
+<section class="section"><div class="container"><div class="panel"><h2>Page introuvable</h2><p>La page demandée n'existe pas.</p><a class="btn" href="index.php?page=ateliers">Retour aux ateliers</a></div></div></section>

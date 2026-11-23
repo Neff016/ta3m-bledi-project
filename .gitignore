@@ -1,0 +1,7 @@
+# Fichiers sensibles
+ta3m_bledi_back/setup_admin.php
+ta3m_bledi_front/setup_admin.php
+
+# Configuration locale
+**/.env
+**/.env.*
