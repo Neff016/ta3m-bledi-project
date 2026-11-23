@@ -1,72 +1,33 @@
+<<<<<<< HEAD
+# Taam Bledi
+=======
 # Taam Bledi – Préservation des variétés agricoles tunisiennes
+>>>>>>> origin/main
 
-## Présentation
+Application PHP en MVC pour gérer les plantations et leurs suivis. L’accès est public : aucun compte, connexion ou déconnexion n’est nécessaire.
 
-Ce projet a été développé dans le cadre du **Projet Technologies Web** à **l’École Supérieure Privée d’Ingénierie et de Technologies (Esprit)** – Tunisie, durant l’année universitaire 2026–2027.
+## Installation locale (XAMPP)
 
-**Ta3m Bledi** est une plateforme web permettant de découvrir, préserver, cultiver et échanger des variétés agricoles traditionnelles tunisiennes menacées par le changement climatique.
+1. Démarrer Apache et MySQL.
+2. Créer la base `taam_bledi` dans phpMyAdmin si elle n’existe pas.
+3. Sélectionner la base `taam_bledi`, puis exécuter `database/plantation_suivi.sql`.
+4. Vérifier les identifiants PDO dans `config/database.php`.
+5. Ouvrir `http://localhost/ta3m-bledi-project/index.php`.
 
-## Fonctionnalités
+Le script SQL installe les tables manquantes et complète le schéma Plantation/Suivi. Il conserve les tables et données déjà présentes. Les associations historiques aux comptes sont facultatives.
 
-- Comptes utilisateurs et badges
-- Musée des variétés disparues et témoignages
-- Mes plantations&#x20;
-- Tounes 2050&#x20;
-- Échange de récoltes
-- Ateliers&#x20;
+## Pages
 
-## Technologies utilisées
+- Tableau de bord : `http://localhost/ta3m-bledi-project/index.php?action=dashboard`
+- Plantations : `http://localhost/ta3m-bledi-project/index.php?action=plantations`
+- Suivis : `http://localhost/ta3m-bledi-project/index.php?action=suivis`
+- Gestion des plantations : `http://localhost/ta3m-bledi-project/index.php?action=admin_plantations`
+- Gestion des suivis : `http://localhost/ta3m-bledi-project/index.php?action=admin_suivis`
 
-### Frontend
+## Modules Plantation et Suivi
 
-- HTML5, CSS, JavaScript
+Le Front Office permet à toute personne de créer, consulter, modifier et supprimer les plantations, ainsi que les suivis liés à chacune. Le Back Office de gestion des plantations et des suivis est également accessible sans compte. Les formulaires gardent une session technique pour la protection CSRF et les messages temporaires, sans authentification utilisateur.
 
+Le routage est centralisé dans `index.php`. `PlantationController` gère le CRUD Plantation ; `SuiviController` gère le CRUD Suivi ; `PlantationModel` et `SuiviModel` regroupent les requêtes PDO préparées. Les vues Front Office et Back Office réutilisent leurs layouts Taam Bledi.
 
-### Backend
-
-- PHP&#x20;
-- MySQL
-- XAMPP / Apache
-
-## Architecture
-
-Le projet suit le modèle **MVC (Modèle – Vue – Contrôleur)** :
-
-- `Controllers/` : gèrent les requêtes et choisissent la vue à afficher
-- `Models/` : contiennent les classes et assurent l'accès aux données
-- `Views/` : contiennent les pages du Front Office et du Back Office, avec `includes/` et `partials/`
-
-## Contributeurs
-
-- Yasmine Neffeti
-- Yomna Ghannem
-- Lemis Zmander
-- Meriam Guerrida
-- Youssef Trabelsi
-- Belhassen Ghaleb
-
-## Contexte académique
-
-Développé à **l’École Supérieure Privée d’Ingénierie et de Technologies (Esprit)** – Tunisie.
-
-Projet Technologies Web | 2026–2027
-
-## Démarrage du projet
-
-1. Cloner le repository :
-
-```bash
-git clone https://github.com/Neff016/ta3m-bledi-project.git
-```
-
-2. Placer le projet dans le dossier `htdocs` de XAMPP.
-3. Démarrer **Apache** et **MySQL** depuis le panneau de contrôle XAMPP.
-4. Ouvrir dans le navigateur :
-
-```text
-http://localhost/ta3m-bledi-project//index.php
-```
-
-## Remerciements
-
-Nous remercions nos tuteurs à **l’École Supérieure Privée d’Ingénierie et de Technologies (Esprit)** pour leur accompagnement et leurs conseils.
+Routes CRUD : `plantations`, `plantation_create`, `plantation_show&id=ID`, `plantation_update&id=ID`, `plantation_delete` ; `suivis&plantation=ID`, `suivi_create&plantation=ID`, `suivi_update&id=ID`, `suivi_delete`. Les pages de gestion sont `admin_plantations`, `admin_plantation_show&id=ID`, `admin_plantation_delete`, `admin_suivis` et `admin_suivi_delete`.
