@@ -15,8 +15,13 @@ ob_start();
     <div>
         <p class="eyebrow">Backoffice</p>
         <h1>Espace administrateur</h1>
-    </section>
+    </div>
     <a class="button button-light" href="index.php?action=users">Gérer les utilisateurs</a>
+</div>
+
+<div class="form-actions" style="margin: 0 0 24px">
+    <a class="button button-primary" href="index.php?action=admin_plantations">Gérer les plantations</a>
+    <a class="button button-light" href="index.php?action=admin_suivis">Consulter les suivis</a>
 </div>
 
 <section class="admin-users">
@@ -39,7 +44,7 @@ ob_start();
             </tbody>
         </table>
     </div>
-</div>
+</section>
 <?php
 $content = ob_get_clean();
 $title = 'Dashboard';

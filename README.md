@@ -1,57 +1,29 @@
-# MyApp
+# Taam Bledi
 
-MVC authentication project based on the "Sessions and PHP Security" workshop.
+Application PHP en MVC pour gérer les plantations et leurs suivis. L’accès est public : aucun compte, connexion ou déconnexion n’est nécessaire.
 
-## Features
+## Installation locale (XAMPP)
 
-- Registration with `password_hash()`
-- Login with `password_verify()`
-- Logout and secure session management
-- User and administrator roles
-- Prepared PDO queries
-- CSRF token verification
-- XSS output escaping
-- HTTP security headers
-- User CRUD for administrators
-- Server-side and JavaScript input validation
+1. Démarrer Apache et MySQL.
+2. Créer la base `taam_bledi` dans phpMyAdmin si elle n’existe pas.
+3. Sélectionner la base `taam_bledi`, puis exécuter `database/plantation_suivi.sql`.
+4. Vérifier les identifiants PDO dans `config/database.php`.
+5. Ouvrir `http://localhost/ta3m-bledi-project/index.php`.
 
-## Structure
+Le script SQL installe les tables manquantes et complète le schéma Plantation/Suivi. Il conserve les tables et données déjà présentes. Les associations historiques aux comptes sont facultatives.
 
-- `config/database.php`
-- `models/UserModel.php`
-- `controllers/AuthController.php`
-- `views/`
-- `index.php`
-- `taam_bledi.sql`
-- `docs/`
+## Pages
 
-## XAMPP Installation
+- Tableau de bord : `http://localhost/ta3m-bledi-project/index.php?action=dashboard`
+- Plantations : `http://localhost/ta3m-bledi-project/index.php?action=plantations`
+- Suivis : `http://localhost/ta3m-bledi-project/index.php?action=suivis`
+- Gestion des plantations : `http://localhost/ta3m-bledi-project/index.php?action=admin_plantations`
+- Gestion des suivis : `http://localhost/ta3m-bledi-project/index.php?action=admin_suivis`
 
-1. Copy the project to `C:\xampp\htdocs\ta3m-bledi-project`.
-2. Start Apache and MySQL in XAMPP.
-3. Create or select the `taam_bledi` database in phpMyAdmin.
-4. Import `taam_bledi.sql`.
-5. Open `http://localhost/ta3m-bledi-project/index.php`.
+## Modules Plantation et Suivi
 
-## Database Configuration
+Le Front Office permet à toute personne de créer, consulter, modifier et supprimer les plantations, ainsi que les suivis liés à chacune. Le Back Office de gestion des plantations et des suivis est également accessible sans compte. Les formulaires gardent une session technique pour la protection CSRF et les messages temporaires, sans authentification utilisateur.
 
-The PDO configuration is in [config/database.php](config/database.php). The workshop base name is `taam_bledi`, the XAMPP host is `localhost`, and the default user is `root`.
+Le routage est centralisé dans `index.php`. `PlantationController` gère le CRUD Plantation ; `SuiviController` gère le CRUD Suivi ; `PlantationModel` et `SuiviModel` regroupent les requêtes PDO préparées. Les vues Front Office et Back Office réutilisent leurs layouts Taam Bledi.
 
-## Run
-
-- Home: `http://localhost/ta3m-bledi-project/index.php?action=home`
-- Register: `http://localhost/ta3m-bledi-project/index.php?action=register`
-- Login: `http://localhost/ta3m-bledi-project/index.php?action=login`
-- User space: `http://localhost/ta3m-bledi-project/index.php?action=dashboard`
-- Admin space: `http://localhost/ta3m-bledi-project/index.php?action=admin`
-- User CRUD: `http://localhost/ta3m-bledi-project/index.php?action=users`
-
-## Test Accounts
-
-Create a test account through the registration page, then promote it to administrator through phpMyAdmin:
-
-```sql
-UPDATE users SET role = 'admin' WHERE email = 'test@example.com';
-```
-
-Reconnect after changing the role.
+Routes CRUD : `plantations`, `plantation_create`, `plantation_show&id=ID`, `plantation_update&id=ID`, `plantation_delete` ; `suivis&plantation=ID`, `suivi_create&plantation=ID`, `suivi_update&id=ID`, `suivi_delete`. Les pages de gestion sont `admin_plantations`, `admin_plantation_show&id=ID`, `admin_plantation_delete`, `admin_suivis` et `admin_suivi_delete`.
