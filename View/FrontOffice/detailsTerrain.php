@@ -51,6 +51,7 @@ $flash    = getFlash();
 
   <!-- Main CSS File -->
   <link href="assets/css/main.css" rel="stylesheet">
+  <link href="assets/css/terrains.css" rel="stylesheet">
 
   <!-- =======================================================
   * Template Name: Taam Bledi

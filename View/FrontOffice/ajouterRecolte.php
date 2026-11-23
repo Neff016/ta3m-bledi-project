@@ -50,6 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $texteBouton = 'Ajouter';
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -78,6 +79,7 @@ $texteBouton = 'Ajouter';
 
   <!-- Main CSS File -->
   <link href="assets/css/main.css" rel="stylesheet">
+  <link href="assets/css/terrains.css" rel="stylesheet">
 
   <!-- =======================================================
   * Template Name: Taam Bledi
