@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # Taam Bledi
+=======
+# Taam Bledi – Préservation des variétés agricoles tunisiennes
+>>>>>>> origin/main
 
 Application PHP en MVC pour gérer les plantations et leurs suivis. L’accès est public : aucun compte, connexion ou déconnexion n’est nécessaire.
 
