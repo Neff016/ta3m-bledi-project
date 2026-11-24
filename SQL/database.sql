@@ -1,6 +1,6 @@
 -- Base de données Taam Bledi (Backoffice MVC PHP / MySQL)
-CREATE DATABASE IF NOT EXISTS taam_bledi CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE taam_bledi;
+CREATE DATABASE IF NOT EXISTS ta3m_bledi CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE ta3m_bledi;
 
 -- 1. Table des utilisateurs (admin, farmer = agriculteur, user = simple utilisateur)
 CREATE TABLE IF NOT EXISTS users (
