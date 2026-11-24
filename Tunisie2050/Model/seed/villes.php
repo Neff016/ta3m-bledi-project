@@ -1,0 +1,11 @@
+<?php
+return [
+    ['idVille' => 1, 'nom' => 'Tunis',    'gouvernorat' => 'Tunis',    'latitude' => 36.8065, 'longitude' => 10.1815, 'description' => "Capitale et plaine côtière du nord, entre agrumes, céréales et maraîchage.",   'image' => 'tunis.jpg',    'idAdmin' => 1],
+    ['idVille' => 2, 'nom' => 'Sfax',     'gouvernorat' => 'Sfax',     'latitude' => 34.7406, 'longitude' => 10.7603, 'description' => "Grande région d'oliveraies du centre-est, très exposée à la sécheresse.",    'image' => 'sfax.jpg',     'idAdmin' => 1],
+    ['idVille' => 3, 'nom' => 'Kairouan', 'gouvernorat' => 'Kairouan', 'latitude' => 35.6781, 'longitude' => 10.0963, 'description' => "Plaine agricole semi-aride du centre : céréales, pistachiers et piments.",   'image' => 'kairouan.jpg', 'idAdmin' => 1],
+    ['idVille' => 4, 'nom' => 'Béja',     'gouvernorat' => 'Béja',     'latitude' => 36.7256, 'longitude' => 9.1817,  'description' => "Grenier à blé du nord-ouest, aux sols fertiles et aux pluies plus abondantes.", 'image' => 'beja.jpg',     'idAdmin' => 1],
+    ['idVille' => 5, 'nom' => 'Gafsa',    'gouvernorat' => 'Gafsa',    'latitude' => 34.4250, 'longitude' => 8.7842,  'description' => "Sud-ouest : oasis et vergers de grenadiers et d'abricotiers.",                  'image' => 'gafsa.jpg',    'idAdmin' => 1],
+    ['idVille' => 6, 'nom' => 'Médenine', 'gouvernorat' => 'Médenine', 'latitude' => 33.3549, 'longitude' => 10.5055, 'description' => "Sud-est aride : oliviers, figuiers et orge sur des sols pauvres.",            'image' => 'medenine.jpg', 'idAdmin' => 1],
+    ['idVille' => 7, 'nom' => 'Bizerte',  'gouvernorat' => 'Bizerte',  'latitude' => 37.2744, 'longitude' => 9.8739,  'description' => "Nord littoral : maraîchage (tomate, pomme de terre, artichaut).",             'image' => 'bizerte.jpg',  'idAdmin' => 1],
+    ['idVille' => 8, 'nom' => 'Tozeur',   'gouvernorat' => 'Tozeur',   'latitude' => 33.9197, 'longitude' => 8.1335,  'description' => "Oasis du Jérid, terre de la datte Deglet Nour.",                             'image' => 'tozeur.jpg',   'idAdmin' => 1],
+];

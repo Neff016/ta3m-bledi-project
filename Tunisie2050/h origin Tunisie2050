@@ -1,0 +1,361 @@
+[1mdiff --cc .gitignore[m
+[1mindex 2d53318,d93204e..0000000[m
+[1m--- a/.gitignore[m
+[1m+++ b/.gitignore[m
+[36m@@@ -1,2 -1,2 +1,7 @@@[m
+[32m++<<<<<<< HEAD[m
+[32m +# Images envoyées par les utilisateurs (photos de profil, icônes de badges)[m
+[32m +View/FrontOffice/assets/img/uploads/[m
+[32m++=======[m
+[32m+ storage/*.json[m
+[32m+ storage/tmp*[m
+[32m++>>>>>>> 8f8c5a5 (Add my project updates*)[m
+[1mdiff --cc Model/Utilisateur.php[m
+[1mindex fb07744,678af3e..0000000[m
+[1m--- a/Model/Utilisateur.php[m
+[1m+++ b/Model/Utilisateur.php[m
+[36m@@@ -1,62 -1,105 +1,168 @@@[m
+  <?php[m
+[32m++<<<<<<< HEAD[m
+[32m +/*[m
+[32m + * Model : Utilisateur[m
+[32m + * Représente une ligne de la table "utilisateur".[m
+[32m + * Le mot de passe est toujours stocké HACHÉ (password_hash), jamais en clair.[m
+[32m + */[m
+[32m +class Utilisateur[m
+[32m +{[m
+[32m +    private ?int $id;[m
+[32m +    private string $nom;[m
+[32m +    private string $prenom;[m
+[32m +    private string $email;[m
+[32m +    private string $telephone;[m
+[32m +    private string $motDePasse;   // hash[m
+[32m +    private string $role;         // 'ADMIN' ou 'AGRICULTEUR'[m
+[32m +    private string $statut;       // 'ACTIF' ou 'BLOQUE'[m
+[32m +    private ?string $photo;[m
+[32m +[m
+[32m +    public function __construct([m
+[32m +        string $nom,[m
+[32m +        string $prenom,[m
+[32m +        string $email,[m
+[32m +        string $telephone,[m
+[32m +        string $motDePasse = '',[m
+[32m +        string $role = 'AGRICULTEUR',[m
+[32m +        string $statut = 'ACTIF',[m
+[32m +        ?string $photo = null,[m
+[32m +        ?int $id = null[m
+[32m +    ) {[m
+[32m +        $this->id         = $id;[m
+[32m +        $this->nom        = $nom;[m
+[32m +        $this->prenom     = $prenom;[m
+[32m +        $this->email      = $email;[m
+[32m +        $this->telephone  = $telephone;[m
+[32m +        $this->motDePasse = $motDePasse;[m
+[32m +        $this->role       = $role;[m
+[32m +        $this->statut     = $statut;[m
+[32m +        $this->photo      = $photo;[m
+[32m +    }[m
+[32m +[m
+[32m +    // ----- Getters -----[m
+[32m +    public function getId(): ?int          { return $this->id; }[m
+[32m +    public function getNom(): string       { return $this->nom; }[m
+[32m +    public function getPrenom(): string    { return $this->prenom; }[m
+[32m +    public function getEmail(): string     { return $this->email; }[m
+[32m +    public function getTelephone(): string { return $this->telephone; }[m
+[32m +    public function getMotDePasse(): string{ return $this->motDePasse; }[m
+[32m +    public function getRole(): string      { return $this->role; }[m
+[32m +    public function getStatut(): string    { return $this->statut; }[m
+[32m +    public function getPhoto(): ?string    { return $this->photo; }[m
+[32m +[m
+[32m +    // ----- Setters -----[m
+[32m +    public function setId(?int $id): void              { $this->id = $id; }[m
+[32m +    public function setNom(string $nom): void          { $this->nom = $nom; }[m
+[32m +    public function setPrenom(string $prenom): void    { $this->prenom = $prenom; }[m
+[32m +    public function setEmail(string $email): void      { $this->email = $email; }[m
+[32m +    public function setTelephone(string $tel): void    { $this->telephone = $tel; }[m
+[32m +    public function setMotDePasse(string $hash): void  { $this->motDePasse = $hash; }[m
+[32m +    public function setRole(string $role): void        { $this->role = $role; }[m
+[32m +    public function setStatut(string $statut): void    { $this->statut = $statut; }[m
+[32m +    public function setPhoto(?string $photo): void     { $this->photo = $photo; }[m
+[32m++=======[m
+[32m+ require_once __DIR__ . '/Store.php';[m
+[32m+ [m
+[32m+ // Utilisateur (Module 1 of the class diagram) - only what the back-office needs[m
+[32m+ class Utilisateur[m
+[32m+ {[m
+[32m+     public const ROLES   = ['utilisateur', 'admin'];[m
+[32m+     public const STATUTS = ['actif', 'bloqué'];[m
+[32m+ [m
+[32m+     public static function all(): array[m
+[32m+     {[m
+[32m+         return Store::all('utilisateurs');[m
+[32m+     }[m
+[32m+ [m
+[32m+     public static function findById(int $id): ?array[m
+[32m+     {[m
+[32m+         foreach (self::all() as $u) {[m
+[32m+             if ((int)$u['idUtilisateur'] === $id) {[m
+[32m+                 return $u;[m
+[32m+             }[m
+[32m+         }[m
+[32m+         return null;[m
+[32m+     }[m
+[32m+ [m
+[32m+     public static function findByEmail(string $email): ?array[m
+[32m+     {[m
+[32m+         foreach (self::all() as $u) {[m
+[32m+             if (strcasecmp($u['email'], $email) === 0) {[m
+[32m+                 return $u;[m
+[32m+             }[m
+[32m+         }[m
+[32m+         return null;[m
+[32m+     }[m
+[32m+ [m
+[32m+     // Active admins, optionally ignoring one account (to check "is there another admin left?")[m
+[32m+     public static function countActiveAdmins(int $exceptId = 0): int[m
+[32m+     {[m
+[32m+         $n = 0;[m
+[32m+         foreach (self::all() as $u) {[m
+[32m+             if ($u['role'] === 'admin' && $u['statut'] === 'actif' && (int)$u['idUtilisateur'] !== $exceptId) {[m
+[32m+                 $n++;[m
+[32m+             }[m
+[32m+         }[m
+[32m+         return $n;[m
+[32m+     }[m
+[32m+ [m
+[32m+     // Server-side validation. $in = nom, prenom, email, telephone, role, statut, motDePasse[m
+[32m+     public static function validate(array $in, int $id = 0): array[m
+[32m+     {[m
+[32m+         $errors = [];[m
+[32m+         $name = '/^\p{L}[\p{L} \'\-]{1,49}$/u';[m
+[32m+ [m
+[32m+         if (!preg_match($name, $in['nom']))    $errors[] = 'Nom invalide (2 à 50 lettres).';[m
+[32m+         if (!preg_match($name, $in['prenom'])) $errors[] = 'Prénom invalide (2 à 50 lettres).';[m
+[32m+ [m
+[32m+         if (!filter_var($in['email'], FILTER_VALIDATE_EMAIL) || strlen($in['email']) > 100) {[m
+[32m+             $errors[] = 'Adresse e-mail invalide.';[m
+[32m+         } else {[m
+[32m+             $other = self::findByEmail($in['email']);[m
+[32m+             if ($other && (int)$other['idUtilisateur'] !== $id) {[m
+[32m+                 $errors[] = 'Cette adresse e-mail est déjà utilisée.';[m
+[32m+             }[m
+[32m+         }[m
+[32m+ [m
+[32m+         if ($in['telephone'] !== '' && !preg_match('/^\d{8}$/', $in['telephone'])) {[m
+[32m+             $errors[] = 'Téléphone invalide (8 chiffres).';[m
+[32m+         }[m
+[32m+         if (!in_array($in['role'], self::ROLES, true))     $errors[] = 'Rôle invalide.';[m
+[32m+         if (!in_array($in['statut'], self::STATUTS, true)) $errors[] = 'Statut invalide.';[m
+[32m+ [m
+[32m+         $pwd = $in['motDePasse'];[m
+[32m+         if ($id === 0 && $pwd === '') {[m
+[32m+             $errors[] = 'Le mot de passe est obligatoire.';[m
+[32m+         } elseif ($pwd !== '' && !preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,72}$/', $pwd)) {[m
+[32m+             $errors[] = 'Mot de passe : 8 caractères minimum avec majuscule, minuscule et chiffre.';[m
+[32m+         }[m
+[32m+         return $errors;[m
+[32m+     }[m
+[32m+ [m
+[32m+     public static function save(array $row): void[m
+[32m+     {[m
+[32m+         $rows = self::all();[m
+[32m+         $found = false;[m
+[32m+         foreach ($rows as $k => $r) {[m
+[32m+             if ((int)$r['idUtilisateur'] === (int)$row['idUtilisateur']) {[m
+[32m+                 $rows[$k] = $row;[m
+[32m+                 $found = true;[m
+[32m+             }[m
+[32m+         }[m
+[32m+         if (!$found) {[m
+[32m+             $rows[] = $row;[m
+[32m+         }[m
+[32m+         Store::replace('utilisateurs', $rows);[m
+[32m+     }[m
+[32m+ [m
+[32m+     public static function delete(int $id): void[m
+[32m+     {[m
+[32m+         Store::replace('utilisateurs', array_filter(self::all(), fn($u) => (int)$u['idUtilisateur'] !== $id));[m
+[32m+     }[m
+[32m+ [m
+[32m+     public static function nextId(): int[m
+[32m+     {[m
+[32m+         return Store::nextId('utilisateurs', 'idUtilisateur');[m
+[32m+     }[m
+[32m++>>>>>>> 8f8c5a5 (Add my project updates*)[m
+  }[m
+[1mdiff --cc README.md[m
+[1mindex 4b2182d,f8806b0..0000000[m
+[1m--- a/README.md[m
+[1m+++ b/README.md[m
+[36m@@@ -1,72 -1,96 +1,171 @@@[m
+[32m++<<<<<<< HEAD[m
+[32m +# Taam Bledi – Préservation des variétés agricoles tunisiennes[m
+[32m +[m
+[32m +## Présentation[m
+[32m +[m
+[32m +Ce projet a été développé dans le cadre du **Projet Technologies Web** à **l’École Supérieure Privée d’Ingénierie et de Technologies (Esprit)** – Tunisie, durant l’année universitaire 2026–2027.[m
+[32m +[m
+[32m +**Ta3m Bledi** est une plateforme web permettant de découvrir, préserver, cultiver et échanger des variétés agricoles traditionnelles tunisiennes menacées par le changement climatique.[m
+[32m +[m
+[32m +## Fonctionnalités[m
+[32m +[m
+[32m +- Comptes utilisateurs et badges[m
+[32m +- Musée des variétés disparues et témoignages[m
+[32m +- Mes plantations&#x20;[m
+[32m +- Tounes 2050&#x20;[m
+[32m +- Échange de récoltes[m
+[32m +- Ateliers&#x20;[m
+[32m +[m
+[32m +## Technologies utilisées[m
+[32m +[m
+[32m +### Frontend[m
+[32m +[m
+[32m +- HTML5, CSS, JavaScript[m
+[32m +[m
+[32m +[m
+[32m +### Backend[m
+[32m +[m
+[32m +- PHP&#x20;[m
+[32m +- MySQL[m
+[32m +- XAMPP / Apache[m
+[32m +[m
+[32m +## Architecture[m
+[32m +[m
+[32m +Le projet suit le modèle **MVC (Modèle – Vue – Contrôleur)** :[m
+[32m +[m
+[32m +- `Controllers/` : gèrent les requêtes et choisissent la vue à afficher[m
+[32m +- `Models/` : contiennent les classes et assurent l'accès aux données[m
+[32m +- `Views/` : contiennent les pages du Front Office et du Back Office, avec `includes/` et `partials/`[m
+[32m +[m
+[32m +## Contributeurs[m
+[32m +[m
+[32m +- Yasmine Neffeti[m
+[32m +- Yomna Ghannem[m
+[32m +- Lemis Zmander[m
+[32m +- Meriam Guerrida[m
+[32m +- Youssef Trabelsi[m
+[32m +- Belhassen Ghaleb[m
+[32m +[m
+[32m +## Contexte académique[m
+[32m +[m
+[32m +Développé à **l’École Supérieure Privée d’Ingénierie et de Technologies (Esprit)** – Tunisie.[m
+[32m +[m
+[32m +Projet Technologies Web | 2026–2027[m
+[32m +[m
+[32m +## Démarrage du projet[m
+[32m +[m
+[32m +1. Cloner le repository :[m
+[32m +[m
+[32m +```bash[m
+[32m +git clone https://github.com/Neff016/ta3m-bledi-project.git[m
+[32m +```[m
+[32m +[m
+[32m +2. Placer le projet dans le dossier `htdocs` de XAMPP.[m
+[32m +3. Démarrer **Apache** et **MySQL** depuis le panneau de contrôle XAMPP.[m
+[32m +4. Ouvrir dans le navigateur :[m
+[32m +[m
+[32m +```text[m
+[32m +http://localhost/ta3m-bledi-project//index.php[m
+[32m +```[m
+[32m +[m
+[32m +## Remerciements[m
+[32m +[m
+[32m +Nous remercions nos tuteurs à **l’École Supérieure Privée d’Ingénierie et de Technologies (Esprit)** pour leur accompagnement et leurs conseils.[m
+[32m++=======[m
+[32m+ # Tunisie2050 – Taam Bledi (Module 2)[m
+[32m+ [m
+[32m+ Module **Tounes 2050** du projet Web 2A « Taam Bledi » (Esprit School of Engineering) :[m
+[32m+ explorer comment le climat transformera l'agriculture de chaque région tunisienne[m
+[32m+ (classes **Ville** et **Projection** du diagramme de classes).[m
+[32m+ [m
+[32m+ ## Fonctionnalités[m
+[32m+ [m
+[32m+ **Front-Office** (thème vert Taam Bledi)[m
+[32m+ - Carte Leaflet + liste des régions avec recherche[m
+[32m+ - Page région : navigation dans le temps (2025 → 2050), graphique température / pluie, cultures menacées[m
+[32m+ - Page « Cultures menacées » par année[m
+[32m+ - Explication simulée par IA (service `Model/ExplicationIA.php`, remplaçable par une vraie API)[m
+[32m+ [m
+[32m+ **Back-Office** (template PlainAdmin)[m
+[32m+ - Connexion par e-mail + mot de passe, réservée au rôle `admin`[m
+[32m+ - CRUD **Régions** (Ville), CRUD **Projections**, CRUD **Utilisateurs** (rôles, blocage / déblocage)[m
+[32m+ - Tableau de bord + réinitialisation des données de démonstration[m
+[32m+ [m
+[32m+ ## Architecture (MVC + intégration du template)[m
+[32m+ [m
+[32m+ ```[m
+[32m+ Tunisie2050/[m
+[32m+ ├── index.php            point d'entrée (session sécurisée, constantes)[m
+[32m+ ├── routes.php           routage  index.php?page=<clé>[m
+[32m+ ├── helpers.php          e(), h(), url(), admin_url(), csrf_*()[m
+[32m+ ├── Controller/          Controller, AdminController (sécurité), Auth, Users, Regions, Projections, Dashboard, Ville[m
+[32m+ ├── Model/               Ville, Projection, Utilisateur, ExplicationIA, Store (JSON), seed/[m
+[32m+ ├── View/[m
+[32m+ │   ├── FrontOffice/     layout.php + includes/ (head, header, footer, scripts) + pages[m
+[32m+ │   └── BackOffice/      layout.php + partials/ (head, sidebar, header, footer, scripts) + pages/[m
+[32m+ └── storage/             données JSON (créées automatiquement depuis Model/seed/)[m
+[32m+ ```[m
+[32m+ [m
+[32m+ Chaque page est du HTML pur : `Controller::render()` capture la vue dans `$content`,[m
+[32m+ puis `layout.php` assemble les blocs communs (workshop *Template Integration*).[m
+[32m+ Le lien actif du menu est calculé avec `$currentPage`.[m
+[32m+ [m
+[32m+ ## Sécurité (workshop Sessions & Sécurité)[m
+[32m+ [m
+[32m+ - Mots de passe hachés avec `password_hash()` / vérifiés avec `password_verify()`[m
+[32m+ - `session_regenerate_id(true)` à la connexion, cookie `HttpOnly` + `SameSite=Lax`, mode strict[m
+[32m+ - Déconnexion : session détruite et cookie supprimé (POST + jeton CSRF)[m
+[32m+ - Protection des routes : chaque contrôleur du back-office appelle `requireLogin()` ; le compte est relu[m
+[32m+   à chaque requête (un admin bloqué ou rétrogradé perd l'accès immédiatement) ; expiration après 30 min d'inactivité[m
+[32m+ - Rôles : `admin` / `utilisateur` ; un simple utilisateur est refusé au back-office[m
+[32m+ - Règles métier : on ne peut pas se supprimer, se bloquer ou se rétrograder soi-même ; il reste toujours un admin actif[m
+[32m+ - Jeton **CSRF** sur tous les formulaires POST[m
+[32m+ - Anti **XSS** : toute sortie passe par `e()` / `h()` ; JSON injecté dans les pages avec `JSON_HEX_*`[m
+[32m+ - Limitation des tentatives de connexion (5 échecs → blocage 60 s)[m
+[32m+ [m
+[32m+ ## Validation des saisies[m
+[32m+ [m
+[32m+ - **Côté client** : `View/BackOffice/assets/js/validation.js` (attributs HTML `required`, `minlength`,[m
+[32m+   `min`/`max`, `pattern`… sur tous les formulaires `data-validate`)[m
+[32m+ - **Côté serveur** : revalidation complète dans `Utilisateur::validate()` et dans les `save()` des contrôleurs[m
+[32m+   (formats, bornes, listes autorisées, unicité e-mail / nom de région / année par région)[m
+[32m+ [m
+[32m+ ## Installation et exécution[m
+[32m+ [m
+[32m+ Prérequis : **PHP ≥ 8.1** (aucune base de données : les données sont dans `storage/*.json`).[m
+[32m+ [m
+[32m+ ```bash[m
+[32m+ cd Tunisie2050[m
+[32m+ php -S localhost:8000[m
+[32m+ ```[m
+[32m+ [m
+[32m+ Puis ouvrir <http://localhost:8000/index.php> (ou copier le dossier dans `htdocs` pour XAMPP / `www` pour WAMP[m
+[32m+ et ouvrir `http://localhost/Tunisie2050/index.php`).[m
+[32m+ Pour afficher les erreurs PHP en développement : variable d'environnement `APP_DEBUG=1`.[m
+[32m+ [m
+[32m+ | Page | URL |[m
+[32m+ |------|-----|[m
+[32m+ | Front-Office | `index.php?page=tounes` |[m
+[32m+ | Back-Office | `index.php?page=admin-login` |[m
+[32m+ [m
+[32m+ ### Comptes de test[m
+[32m+ [m
+[32m+ | Rôle | E-mail | Mot de passe |[m
+[32m+ |------|--------|--------------|[m
+[32m+ | admin | `admin@tunisie2050.tn` | `Admin@2050` |[m
+[32m+ | utilisateur (refusé au back-office) | `user@tunisie2050.tn` | `User@2050` |[m
+[32m+ [m
+[32m+ Supprimer `storage/*.json` régénère toutes les données depuis `Model/seed/`.[m
+[32m+ [m
+[32m+ ## Intégration avec les autres modules[m
+[32m+ [m
+[32m+ `Utilisateur` est la classe commune (Module 1). Ici elle est stockée en JSON ; à l'intégration,[m
+[32m+ remplacer `Model/Utilisateur.php` par le modèle PDO du groupe : `AdminController::requireLogin()`[m
+[32m+ ne dépend que de `$_SESSION['user_id']` et de `Utilisateur::findById()`.[m
+[32m+ `Ville.idAdmin` pointe vers l'`idUtilisateur` de l'administrateur qui gère la région.[m
+[32m+ [m
+[32m+ ## Git[m
+[32m+ [m
+[32m+ Une branche par fonctionnalité, commits réguliers, fusion vers `main` par pull request.[m
+[32m+ Nom du dépôt : respecter la nomenclature demandée (ex. `2A20-PCPP-2A22-Group-2-...`).[m
+[32m++>>>>>>> 8f8c5a5 (Add my project updates*)[m

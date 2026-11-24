@@ -1,0 +1,11 @@
+/* Project additions on top of the template (main.css is left untouched) */
+.field-error { color: #d50100; font-size: 13px; margin-top: 6px; }
+.input-style-1 input.is-invalid,
+.input-style-1 textarea.is-invalid,
+.select-style-1 select.is-invalid { border-color: #d50100; background: #fff6f6; }
+.badge-role, .badge-statut { display: inline-block; padding: 3px 12px; border-radius: 30px; font-size: 13px; font-weight: 500; }
+.badge-role.admin { background: rgba(54, 92, 245, .12); color: #365CF5; }
+.badge-role.utilisateur { background: rgba(93, 101, 123, .12); color: #5d657b; }
+.badge-statut.actif { background: rgba(33, 150, 83, .12); color: #219653; }
+.badge-statut.bloque { background: rgba(213, 1, 0, .1); color: #d50100; }
+.action button { background: none; border: 0; padding: 0; }

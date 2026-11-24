@@ -1,0 +1,7 @@
+<<<<<<< HEAD
+# Images envoyées par les utilisateurs (photos de profil, icônes de badges)
+View/FrontOffice/assets/img/uploads/
+=======
+storage/*.json
+storage/tmp*
+>>>>>>> 8f8c5a5 (Add my project updates*)
