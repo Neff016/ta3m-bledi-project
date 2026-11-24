@@ -2,81 +2,45 @@
 
 ## Présentation
 
-Ce projet a été développé dans le cadre du **Projet Technologies Web** à **l’École Supérieure Privée d’Ingénierie et de Technologies (Esprit)** – Tunisie, durant l’année universitaire 2026–2027.
-
-**Ta3m Bledi** est une plateforme web permettant de découvrir, préserver, cultiver et échanger des variétés agricoles traditionnelles tunisiennes menacées par le changement climatique.
+Ta3m Bledi est une plateforme web du projet Technologies Web à Esprit, en Tunisie. Elle permet de découvrir, préserver, cultiver et échanger des variétés agricoles traditionnelles tunisiennes.
 
 ## Fonctionnalités
 
 - Comptes utilisateurs et badges
-- Musée des variétés disparues et témoignages
-- Mes plantations
-- Tounes 2050
-- Échange de récoltes
-- Ateliers
+- Terrains et récoltes
+- Plantation et suivi des cultures
+- Musée des variétés, recommandations et ateliers
 
-## Technologies utilisées
+## Technologies
 
-### Frontend
+- PHP, MySQL et Apache (XAMPP)
+- HTML, CSS, JavaScript et Bootstrap
 
-- HTML5, CSS, JavaScript
+## Architecture MVC
 
-### Backend
+Le projet utilise une seule application et ses dossiers existants :
 
-- PHP
-- MySQL
-- XAMPP / Apache
+- Controller/ : contrôleurs des modules, dont Utilisateur, Terrain, Récolte, Badge, Plantation et Suivi
+- Model/ : modèles partagés et modèles Plantation/Suivi
+- View/FrontOffice/ : pages utilisateur et templates Front Office
+- View/BackOffice/ : pages d’administration et template Back Office
+- SQL/ : scripts SQL des modules
+- index.php : routes du module Plantation et Suivi
 
-## Architecture
+Plantation et Suivi réutilisent les sessions de connexion du projet, Controller/AuthGuard.php et les rôles ADMIN et AGRICULTEUR. Un agriculteur ne voit et ne modifie que ses plantations vérifiées et leurs suivis. Les fonctions d’administration sont réservées au rôle ADMIN. Le CRUD Utilisateur existant reste dans le Back Office.
 
-Le projet principal suit le modèle **MVC (Modèle – Vue – Contrôleur)** :
+## Installation locale
 
-- `Controller/` : contrôleurs du projet principal
-- `Model/` : modèles du projet principal
-- `View/` : vues du Front Office (`View/FrontOffice/`) et du Back Office (`View/BackOffice/`)
+1. Placer le dépôt dans le dossier htdocs de XAMPP.
+2. Démarrer Apache et MySQL.
+3. Créer/configurer la base Taam Bledi selon les scripts SQL principaux du dépôt.
+4. Exécuter SQL/plantation_suivi.sql après la création de la table utilisateur du projet principal. Le script ajoute les tables, colonnes et relations du module sans supprimer ni migrer de données.
+5. Ouvrir la page d’accueil à l’adresse http://localhost/ta3m-bledi-project/View/FrontOffice/index.html.
 
-Le module Plantation et Suivi possède une structure MVC séparée :
-
-- `controllers/` : contrôleurs Plantation et Suivi
-- `models/` : modèles Plantation et Suivi
-- `views/` : vues Front Office et Back Office du module
-- `config/` et `database/` : configuration PDO et scripts SQL du module
-
-## Module Plantation et Suivi
-
-Le module permet de créer, consulter, modifier et supprimer des plantations et leurs suivis associés, côté Front Office comme côté Back Office. Il comprend ses contrôleurs, modèles, vues et le script SQL d’installation `database/plantation_suivi.sql`.
+Les routes du module sont disponibles depuis les menus après connexion. La liste du CRUD Utilisateur est accessible à View/BackOffice/listeUtilisateurs.php.
 
 ## Contributeurs
 
-- Yasmine Neffeti
-- Yomna Ghannem
-- Lemis Zmander
-- Meriam Guerrida
-- Youssef Trabelsi
-- Belhassen Ghaleb
+Yasmine Neffeti, Yomna Ghannem, Lemis Zmander, Meriam Guerrida, Youssef Trabelsi et Belhassen Ghaleb.
 
-## Contexte académique
-
-Développé à **l’École Supérieure Privée d’Ingénierie et de Technologies (Esprit)** – Tunisie.
-
-Projet Technologies Web | 2026–2027
-
-## Démarrage du projet
-
-1. Cloner le repository :
-
-```bash
-git clone https://github.com/Neff016/ta3m-bledi-project.git
-```
-
-2. Placer le projet dans le dossier `htdocs` de XAMPP.
-3. Démarrer **Apache** et **MySQL** depuis le panneau de contrôle XAMPP.
-4. Ouvrir dans le navigateur :
-
-```text
-http://localhost/ta3m-bledi-project/index.php
-```
-
-## Remerciements
-
-Nous remercions nos tuteurs à **l’École Supérieure Privée d’Ingénierie et de Technologies (Esprit)** pour leur accompagnement et leurs conseils.
+Projet Technologies Web – Esprit, Tunisie.

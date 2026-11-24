@@ -1,9 +1,11 @@
 <?php
 require_once __DIR__ . '/../../Controller/AuthGuard.php';
 requireAdmin();
+$backOfficeAssets = (defined('APP_BASE_URL') ? APP_BASE_URL : '../../') . 'View/BackOffice/';
+$frontOfficeAssets = (defined('APP_BASE_URL') ? APP_BASE_URL : '../../') . 'View/FrontOffice/';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 
 <head>
 
@@ -16,13 +18,16 @@ requireAdmin();
     <title>Taam Bledi - Administration</title>
 
     <!-- Custom fonts for this template-->
-    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <link href="<?= $backOfficeAssets ?>vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
     <link
         href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
         rel="stylesheet">
 
     <!-- Custom styles for this template-->
-    <link href="css/sb-admin-2.min.css" rel="stylesheet">
+    <link href="<?= $backOfficeAssets ?>css/sb-admin-2.min.css" rel="stylesheet">
+<link href="<?= $frontOfficeAssets ?>assets/css/plantation-module.css" rel="stylesheet">
+<link href="<?= $frontOfficeAssets ?>assets/css/plantations.css" rel="stylesheet">
+<script src="<?= $frontOfficeAssets ?>assets/js/plantation-validation.js" defer></script>
 
 </head>
 
@@ -35,7 +40,7 @@ requireAdmin();
         <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
 
             <!-- Sidebar - Brand -->
-            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="dashboard.php">
+            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="<?= $backOfficeAssets ?>dashboard.php">
                 <div class="sidebar-brand-icon rotate-n-15">
                     <i class="fas fa-seedling"></i>
                 </div>
@@ -45,7 +50,7 @@ requireAdmin();
             <hr class="sidebar-divider my-0">
 
             <li class="nav-item">
-                <a class="nav-link" href="dashboard.php">
+                <a class="nav-link" href="<?= $backOfficeAssets ?>dashboard.php">
                     <i class="fas fa-fw fa-chart-pie"></i>
                     <span>Statistiques</span></a>
             </li>
@@ -54,19 +59,19 @@ requireAdmin();
             <div class="sidebar-heading">Utilisateurs &amp; Badges</div>
 
             <li class="nav-item">
-                <a class="nav-link" href="listeUtilisateurs.php">
+                <a class="nav-link" href="<?= $backOfficeAssets ?>listeUtilisateurs.php">
                     <i class="fas fa-fw fa-users"></i>
                     <span>Utilisateurs</span></a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link" href="listeBadges.php">
+                <a class="nav-link" href="<?= $backOfficeAssets ?>listeBadges.php">
                     <i class="fas fa-fw fa-award"></i>
                     <span>Badges</span></a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link" href="attribuerBadge.php">
+                <a class="nav-link" href="<?= $backOfficeAssets ?>attribuerBadge.php">
                     <i class="fas fa-fw fa-medal"></i>
                     <span>Attribuer un badge</span></a>
             </li>
@@ -75,21 +80,23 @@ requireAdmin();
             <div class="sidebar-heading">Terrains &amp; Récoltes</div>
 
             <li class="nav-item">
-                <a class="nav-link" href="listeTerrains.php">
+                <a class="nav-link" href="<?= $backOfficeAssets ?>listeTerrains.php">
                     <i class="fas fa-fw fa-map-marked-alt"></i>
                     <span>Terrains</span></a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link" href="listeRecoltes.php">
+                <a class="nav-link" href="<?= $backOfficeAssets ?>listeRecoltes.php">
                     <i class="fas fa-fw fa-seedling"></i>
                     <span>Récoltes</span></a>
             </li>
+            <li class="nav-item"><a class="nav-link" href="<?= APP_BASE_URL ?>index.php?action=admin_plantations"><i class="fas fa-fw fa-seedling"></i><span>Plantations</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="<?= APP_BASE_URL ?>index.php?action=admin_suivis"><i class="fas fa-fw fa-chart-line"></i><span>Suivis</span></a></li>
 
             <hr class="sidebar-divider">
 
             <li class="nav-item">
-                <a class="nav-link" href="../FrontOffice/index.html">
+                <a class="nav-link" href="<?= $frontOfficeAssets ?>index.html">
                     <i class="fas fa-fw fa-globe"></i>
                     <span>Voir le site</span></a>
             </li>
@@ -226,7 +233,7 @@ requireAdmin();
                                 </h6>
                                 <a class="dropdown-item d-flex align-items-center" href="#">
                                     <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_1.svg"
+                                        <img class="rounded-circle" src="<?= $backOfficeAssets ?>img/undraw_profile_1.svg"
                                             alt="...">
                                         <div class="status-indicator bg-success"></div>
                                     </div>
@@ -238,7 +245,7 @@ requireAdmin();
                                 </a>
                                 <a class="dropdown-item d-flex align-items-center" href="#">
                                     <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_2.svg"
+                                        <img class="rounded-circle" src="<?= $backOfficeAssets ?>img/undraw_profile_2.svg"
                                             alt="...">
                                         <div class="status-indicator"></div>
                                     </div>
@@ -250,7 +257,7 @@ requireAdmin();
                                 </a>
                                 <a class="dropdown-item d-flex align-items-center" href="#">
                                     <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_3.svg"
+                                        <img class="rounded-circle" src="<?= $backOfficeAssets ?>img/undraw_profile_3.svg"
                                             alt="...">
                                         <div class="status-indicator bg-warning"></div>
                                     </div>
@@ -284,7 +291,7 @@ requireAdmin();
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <span class="mr-2 d-none d-lg-inline text-gray-600 small"><?= e(($_SESSION['prenom'] ?? '') . ' ' . ($_SESSION['nom'] ?? '')) ?></span>
                                 <img class="img-profile rounded-circle"
-                                    src="img/undraw_profile.svg">
+                                    src="<?= $backOfficeAssets ?>img/undraw_profile.svg">
                             </a>
                             <!-- Dropdown - User Information -->
                             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
@@ -315,10 +322,10 @@ requireAdmin();
                 <!-- End of Topbar -->
 
                 <!-- Begin Page Content -->
-                <div class="container-fluid">
+                <div class="container-fluid plantation-module">
 
                     <!-- Page Heading -->
-                    <h1 class="h3 mb-4 text-gray-800">Blank Page</h1>
+                    <?= $content ?? '' ?>
 
                 </div>
                 <!-- /.container-fluid -->
@@ -361,21 +368,21 @@ requireAdmin();
                 <div class="modal-body">Cliquez sur « Se déconnecter » pour fermer votre session.</div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
-                    <a class="btn btn-primary" href="../FrontOffice/deconnexion.php">Se déconnecter</a>
+                    <a class="btn btn-primary" href="<?= $frontOfficeAssets ?>deconnexion.php">Se déconnecter</a>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Bootstrap core JavaScript-->
-    <script src="vendor/jquery/jquery.min.js"></script>
-    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="<?= $backOfficeAssets ?>vendor/jquery/jquery.min.js"></script>
+    <script src="<?= $backOfficeAssets ?>vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 
     <!-- Core plugin JavaScript-->
-    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+    <script src="<?= $backOfficeAssets ?>vendor/jquery-easing/jquery.easing.min.js"></script>
 
     <!-- Custom scripts for all pages-->
-    <script src="js/sb-admin-2.min.js"></script>
+    <script src="<?= $backOfficeAssets ?>js/sb-admin-2.min.js"></script>
 
 </body>
 

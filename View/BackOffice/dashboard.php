@@ -102,6 +102,16 @@ $dernieres       = $recolteC->dernieresRecoltes(5);
                     <i class="fas fa-fw fa-seedling"></i>
                     <span>Récoltes</span></a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link" href="../../index.php?action=admin_plantations">
+                    <i class="fas fa-fw fa-seedling"></i>
+                    <span>Plantations</span></a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="../../index.php?action=admin_suivis">
+                    <i class="fas fa-fw fa-chart-line"></i>
+                    <span>Suivis</span></a>
+            </li>
 
             <hr class="sidebar-divider">
 

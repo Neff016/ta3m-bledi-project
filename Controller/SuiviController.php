@@ -1,8 +1,9 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../models/PlantationModel.php';
-require_once __DIR__ . '/../models/SuiviModel.php';
+require_once __DIR__ . '/../Model/PlantationModel.php';
+require_once __DIR__ . '/../Model/SuiviModel.php';
+require_once __DIR__ . '/AuthGuard.php';
 
 /** Contrôleur dédié aux opérations du module Suivi. */
 final class SuiviController
@@ -16,24 +17,24 @@ final class SuiviController
         $this->suivis = new SuiviModel();
     }
 
-    public function index(): void
+    public function index(int $userId): void
     {
         $plantationId = filter_var($_GET['plantation'] ?? null, FILTER_VALIDATE_INT);
-        $plantation = $plantationId ? $this->plantations->find((int) $plantationId) : null;
+        $plantation = $plantationId ? $this->plantations->findForUser((int) $plantationId, $userId) : null;
         if ($plantationId && !$plantation) {
             $this->notFound();
             return;
         }
         $this->render('front/suivis.php', [
-            'suivis' => $plantation ? $this->suivis->forPlantation((int) $plantationId) : $this->suivis->all(),
+            'suivis' => $plantation ? $this->suivis->forPlantation((int) $plantationId, $userId) : $this->suivis->allForUser($userId),
             'plantation' => $plantation,
             'csrfToken' => $this->csrfToken(),
         ], 'Mes suivis | Taam Bledi');
     }
 
-    public function form(?int $id): void
+    public function form(?int $id, int $userId): void
     {
-        $existing = $id ? $this->suivis->find($id) : null;
+        $existing = $id ? $this->suivis->findForUser($id, $userId) : null;
         if ($id && !$existing) {
             $this->notFound();
             return;
@@ -44,7 +45,7 @@ final class SuiviController
         $plantationId = $existing
             ? (int) $existing['idPlantation']
             : (int) ($_GET['plantation'] ?? $_POST['idPlantation'] ?? 0);
-        $plantation = $this->plantations->find($plantationId);
+        $plantation = $this->plantations->findForUser($plantationId, $userId);
         if (!$plantation) {
             $this->notFound();
             return;
@@ -63,8 +64,8 @@ final class SuiviController
                 $errors = $this->validate($old);
                 if (!$errors) {
                     $saved = $id
-                        ? $this->suivis->updateById($id, $old, $plantationId)
-                        : $this->suivis->create($old, $plantationId);
+                        ? $this->suivis->updateById($id, $old, $plantationId, $userId)
+                        : $this->suivis->create($old, $plantationId, $userId);
                     if ($saved) {
                         $this->setFlash($id ? 'Suivi modifié.' : 'Suivi ajouté.');
                         $this->redirect('index.php?action=plantation_show&id=' . $plantationId);
@@ -74,7 +75,7 @@ final class SuiviController
             }
         }
 
-        $this->render('front/suivi_edit.php', [
+        $this->render('suivi_form.php', [
             'old' => $old,
             'recordId' => $id,
             'errors' => $errors,
@@ -84,7 +85,7 @@ final class SuiviController
         ], ($id ? 'Modifier' : 'Ajouter') . ' un suivi | Taam Bledi');
     }
 
-    public function delete(): void
+    public function delete(int $userId): void
     {
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' || !$this->validCsrf($_POST['csrf_token'] ?? null)) {
             http_response_code(400);
@@ -92,12 +93,12 @@ final class SuiviController
             $this->redirect('index.php?action=plantations');
         }
         $id = filter_var($_POST['id'] ?? null, FILTER_VALIDATE_INT);
-        $suivi = $id ? $this->suivis->find((int) $id) : null;
+        $suivi = $id ? $this->suivis->findForUser((int) $id, $userId) : null;
         if (!$suivi) {
             $this->notFound();
             return;
         }
-        $this->suivis->deleteById((int) $id);
+        $this->suivis->deleteById((int) $id, $userId);
         $this->setFlash('Suivi supprimé.');
         $this->redirect('index.php?action=plantation_show&id=' . (int) $suivi['idPlantation']);
     }
@@ -202,9 +203,16 @@ final class SuiviController
     private function render(string $view, array $data, string $title, string $activePage = 'dashboard', bool $admin = false): void
     {
         extract($data, EXTR_SKIP);
+        $viewDirectory = $admin ? 'View/BackOffice/PlantationSuivi' : 'View/FrontOffice/PlantationSuivi';
         ob_start();
-        require __DIR__ . '/../views/' . $view;
-        $content = ob_get_clean();
-        require __DIR__ . '/../views/' . ($admin ? 'back/layout_admin.php' : 'front/layout.php');
+        require __DIR__ . '/../' . $viewDirectory . '/' . basename($view);
+        $content = (string) ob_get_clean();
+
+        if ($admin) {
+            require __DIR__ . '/../View/BackOffice/base.php';
+            return;
+        }
+
+        require __DIR__ . '/../View/FrontOffice/base.php';
     }
 }

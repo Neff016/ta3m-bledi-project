@@ -1,16 +1,19 @@
+<?php
+$frontAssetBase = (defined('APP_BASE_URL') ? APP_BASE_URL : '../../') . 'View/FrontOffice/';
+?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 
 <head>
   <meta charset="utf-8">
   <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Taam Bledi</title>
+  <title><?= htmlspecialchars($title ?? 'Taam Bledi', ENT_QUOTES, 'UTF-8') ?></title>
   <meta name="description" content="">
   <meta name="keywords" content="">
 
   <!-- Favicons -->
-  <link href="assets/img/favicon.png" rel="icon">
-  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+  <link href="<?= $frontAssetBase ?>assets/img/favicon.png" rel="icon">
+  <link href="<?= $frontAssetBase ?>assets/img/apple-touch-icon.png" rel="apple-touch-icon">
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
@@ -18,14 +21,16 @@
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600;1,700;1,800&family=Marcellus:wght@400&display=swap" rel="stylesheet">
 
   <!-- Vendor CSS Files -->
-  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
-  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
-  <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
-  <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
+  <link href="<?= $frontAssetBase ?>assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="<?= $frontAssetBase ?>assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="<?= $frontAssetBase ?>assets/vendor/aos/aos.css" rel="stylesheet">
+  <link href="<?= $frontAssetBase ?>assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
+  <link href="<?= $frontAssetBase ?>assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
 
   <!-- Main CSS File -->
-  <link href="assets/css/main.css" rel="stylesheet">
+  <link href="<?= $frontAssetBase ?>assets/css/main.css" rel="stylesheet">
+  <link href="<?= $frontAssetBase ?>assets/css/plantation-module.css" rel="stylesheet">
+  <link href="<?= $frontAssetBase ?>assets/css/plantations.css" rel="stylesheet">
 
   <!-- =======================================================
   * Template Name: Taam Bledi
@@ -36,42 +41,43 @@
   ======================================================== -->
 </head>
 
-<body class="index-page">
+<body class="index-page plantation-module">
 
   <header id="header" class="header d-flex align-items-center position-relative">
     <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
 
-      <a href="index.html" class="logo d-flex align-items-center">
+      <a href="<?= $frontAssetBase ?>index.html" class="logo d-flex align-items-center">
         <!-- Uncomment the line below if you also wish to use an image logo -->
-        <img src="assets/img/logo.png" alt="Taam Bledi">
+        <img src="<?= $frontAssetBase ?>assets/img/logo.png" alt="Taam Bledi">
         <!-- <h1 class="sitename">Taam Bledi</h1>  -->
       </a>
 
       <nav id="navmenu" class="navmenu">
         <ul>
-          <li><a href="index.html">Home</a></li>
-          <li><a href="about.html">About Us</a></li>
-          <li><a href="services.html">Our Services</a></li>
-          <li><a href="testimonials.html">Testimonials</a></li>
-          <li><a href="blog.html">Blog</a></li>
+          <li><a href="<?= $frontAssetBase ?>index.html">Home</a></li>
+          <li><a href="<?= $frontAssetBase ?>about.html">About Us</a></li>
+          <li><a href="<?= $frontAssetBase ?>services.html">Our Services</a></li>
+          <li><a href="<?= $frontAssetBase ?>testimonials.html">Testimonials</a></li>
+          <li><a href="<?= $frontAssetBase ?>blog.html">Blog</a></li>
           <li class="dropdown"><a href="#"><span>Terrains &amp; Récoltes</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
             <ul>
-              <li><a href="mesTerrains.php">Mes terrains</a></li>
-              <li><a href="mesRecoltes.php">Mes récoltes</a></li>
-              <li><a href="recommandation.php">Recommandation IA</a></li>
-              <li><a href="consommationEau.php">Consommation d'eau</a></li>
+              <li><a href="<?= $frontAssetBase ?>mesTerrains.php">Mes terrains</a></li>
+              <li><a href="<?= $frontAssetBase ?>mesRecoltes.php">Mes récoltes</a></li>
+           <?php require __DIR__ . '/partials/plantationLinks.php'; ?>
+              <li><a href="<?= $frontAssetBase ?>recommandation.php">Recommandation IA</a></li>
+              <li><a href="<?= $frontAssetBase ?>consommationEau.php">Consommation d'eau</a></li>
             </ul>
           </li>
           <li class="dropdown"><a href="#"><span>Mon compte</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
             <ul>
-              <li><a href="profil.php">Mon profil</a></li>
-              <li><a href="mesBadges.php">Mes badges</a></li>
-              <li><a href="connexion.php">Connexion</a></li>
-              <li><a href="inscription.php">Inscription</a></li>
-              <li><a href="deconnexion.php">Déconnexion</a></li>
+              <li><a href="<?= $frontAssetBase ?>profil.php">Mon profil</a></li>
+              <li><a href="<?= $frontAssetBase ?>mesBadges.php">Mes badges</a></li>
+              <li><a href="<?= $frontAssetBase ?>connexion.php">Connexion</a></li>
+              <li><a href="<?= $frontAssetBase ?>inscription.php">Inscription</a></li>
+              <li><a href="<?= $frontAssetBase ?>deconnexion.php">Déconnexion</a></li>
             </ul>
           </li>
-          <li><a href="contact.html">Contact</a></li>
+          <li><a href="<?= $frontAssetBase ?>contact.html">Contact</a></li>
         </ul>
         <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
       </nav>
@@ -81,7 +87,7 @@
 
   <main class="main">
     <section class="container my-5">
-      <!-- CONTENU MTA3 EL PAGE YET7AT HOUNI -->
+      <?= $content ?? '' ?>
     </section>
 
   </main>
@@ -92,7 +98,7 @@
       <div class="container">
         <div class="row gy-4">
           <div class="col-lg-4 col-md-6 footer-about">
-            <a href="index.html" class="logo d-flex align-items-center">
+            <a href="<?= $frontAssetBase ?>index.html" class="logo d-flex align-items-center">
               <span class="sitename">Taam Bledi</span>
             </a>
             <div class="footer-contact pt-3">
@@ -186,14 +192,16 @@
   <div id="preloader"></div>
 
   <!-- Vendor JS Files -->
-  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/vendor/php-email-form/validate.js"></script>
-  <script src="assets/vendor/aos/aos.js"></script>
-  <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
-  <script src="assets/vendor/glightbox/js/glightbox.min.js"></script>
+  <script src="<?= $frontAssetBase ?>assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="<?= $frontAssetBase ?>assets/vendor/php-email-form/validate.js"></script>
+  <script src="<?= $frontAssetBase ?>assets/vendor/aos/aos.js"></script>
+  <script src="<?= $frontAssetBase ?>assets/vendor/swiper/swiper-bundle.min.js"></script>
+  <script src="<?= $frontAssetBase ?>assets/vendor/glightbox/js/glightbox.min.js"></script>
 
   <!-- Main JS File -->
-  <script src="assets/js/main.js"></script>
+  <script src="<?= $frontAssetBase ?>assets/js/main.js"></script>
+  <script src="<?= $frontAssetBase ?>assets/js/plantation-app.js"></script>
+  <script src="<?= $frontAssetBase ?>assets/js/plantation-validation.js"></script>
 
 </body>
 

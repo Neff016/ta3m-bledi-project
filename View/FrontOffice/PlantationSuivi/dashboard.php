@@ -4,7 +4,6 @@ $needsAttention = static function (array $suivi): bool {
     $state = strtolower((string) ($suivi['etat'] ?? ''));
     return str_contains($state, 'stress') || str_contains($state, 'maladie') || str_contains($state, 'attention') || str_contains($state, 'surveill');
 };
-ob_start();
 ?>
 <section class="page-hero dashboard-welcome">
     <div><p class="eyebrow">Votre jardin, en un regard</p><h1>Bonjour ! 🌱</h1><p>Voici l’état des plantations et les dernières observations.</p></div>
@@ -34,7 +33,3 @@ ob_start();
         <a class="button button-light dashboard-add" href="index.php?action=suivis">Consulter mes suivis</a>
     </article>
 </section>
-<?php
-$content = ob_get_clean();
-$title = 'Tableau de bord | Taam Bledi';
-require __DIR__ . '/layout.php';

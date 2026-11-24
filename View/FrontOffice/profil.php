@@ -146,7 +146,8 @@ $initiales = mb_strtoupper(mb_substr($user['prenom'], 0, 1) . mb_substr($user['n
           <li class="dropdown"><a href="#"><span>Terrains &amp; Récoltes</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
             <ul>
               <li><a href="mesTerrains.php">Mes terrains</a></li>
-              <li><a href="mesRecoltes.php">Mes récoltes</a></li>
+               <li><a href="mesRecoltes.php">Mes récoltes</a></li>
+               <?php require __DIR__ . '/partials/plantationLinks.php'; ?>
               <li><a href="recommandation.php">Recommandation IA</a></li>
               <li><a href="consommationEau.php">Consommation d'eau</a></li>
             </ul>
@@ -192,7 +193,9 @@ $initiales = mb_strtoupper(mb_substr($user['prenom'], 0, 1) . mb_substr($user['n
               <?php endif; ?>
               <h3><?= e($user['prenom'] . ' ' . $user['nom']) ?></h3>
               <p class="text-muted"><?= e(UtilisateurController::ROLES[$user['role']] ?? $user['role']) ?></p>
-              <a href="mesBadges.php" class="btn btn-outline-success">Voir mes badges</a>
+               <a href="mesBadges.php" class="btn btn-outline-success">Voir mes badges</a>
+               <a href="../../index.php?action=plantations" class="btn btn-outline-success mt-2">Mes plantations</a>
+               <a href="../../index.php?action=suivis" class="btn btn-outline-success mt-2">Mes suivis</a>
               <p class="mt-3 mb-0"><a href="deconnexion.php">Se déconnecter</a></p>
             </div>
 

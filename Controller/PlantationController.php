@@ -1,8 +1,9 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../models/PlantationModel.php';
-require_once __DIR__ . '/../models/SuiviModel.php';
+require_once __DIR__ . '/../Model/PlantationModel.php';
+require_once __DIR__ . '/../Model/SuiviModel.php';
+require_once __DIR__ . '/AuthGuard.php';
 
 /** Contrôle les routes et règles métier Plantation/Suivi. */
 final class PlantationController
@@ -16,10 +17,10 @@ final class PlantationController
         $this->suivis = new SuiviModel();
     }
 
-    public function summary(): array
+    public function summary(int $userId): array
     {
-        $plantations = $this->plantations->all();
-        $suivis = $this->suivis->all();
+        $plantations = $this->plantations->allForUser($userId);
+        $suivis = $this->suivis->allForUser($userId);
         $alerts = array_filter($suivis, static function (array $suivi): bool {
             $state = function_exists('mb_strtolower') ? mb_strtolower((string) $suivi['etat'], 'UTF-8') : strtolower((string) $suivi['etat']);
             return str_contains($state, 'stress') || str_contains($state, 'maladie') || str_contains($state, 'attention') || str_contains($state, 'surveill');
@@ -35,34 +36,39 @@ final class PlantationController
         ];
     }
 
-    public function index(): void
+    public function dashboard(int $userId): void
+    {
+        $this->render('dashboard.php', ['plantationSummary' => $this->summary($userId)], 'Tableau de bord | Taam Bledi');
+    }
+
+    public function index(int $userId): void
     {
         $this->render('front/plantations.php', [
-            'plantations' => $this->plantations->all(),
-            'summary' => $this->summary(),
+            'plantations' => $this->plantations->allForUser($userId),
+            'summary' => $this->summary($userId),
             'csrfToken' => $this->csrfToken(),
             'flash' => $this->takeFlash(),
         ], 'Mes plantations | Taam Bledi');
     }
 
-    public function show(int $id): void
+    public function show(int $id, int $userId): void
     {
-        $plantation = $this->plantations->find($id);
+        $plantation = $this->plantations->findForUser($id, $userId);
         if (!$plantation) {
             $this->notFound();
             return;
         }
-        $this->render('front/plantation_details.php', [
+        $this->render('plantation_show.php', [
             'plantation' => $plantation,
-            'suivis' => $this->suivis->forPlantation($id),
+            'suivis' => $this->suivis->forPlantation($id, $userId),
             'csrfToken' => $this->csrfToken(),
             'flash' => $this->takeFlash(),
         ], 'Détail de plantation | Taam Bledi');
     }
 
-    public function form(?int $id): void
+    public function form(?int $id, int $userId): void
     {
-        $existing = $id ? $this->plantations->find($id) : null;
+        $existing = $id ? $this->plantations->findForUser($id, $userId) : null;
         if ($id && !$existing) {
             $this->notFound();
             return;
@@ -80,8 +86,8 @@ final class PlantationController
                 $errors = $this->validatePlantation($old);
                 if (!$errors) {
                     $saved = $id
-                        ? $this->plantations->updateById($id, $old)
-                        : $this->plantations->create($old);
+                        ? $this->plantations->updateById($id, $old, $userId)
+                        : $this->plantations->create($old, $userId);
                     if ($saved) {
                         $this->setFlash($id ? 'Plantation modifiée.' : 'Plantation ajoutée.');
                         $this->redirect($id ? 'index.php?action=plantation_show&id=' . $id : 'index.php?action=plantations');
@@ -90,7 +96,7 @@ final class PlantationController
                 }
             }
         }
-        $this->render('front/plantation_edit.php', [
+        $this->render('plantation_form.php', [
             'old' => $old,
             'recordId' => $id,
             'errors' => $errors,
@@ -100,7 +106,7 @@ final class PlantationController
         ], ($id ? 'Modifier' : 'Ajouter') . ' une plantation | Taam Bledi');
     }
 
-    public function delete(): void
+    public function delete(int $userId): void
     {
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' || !$this->validCsrf($_POST['csrf_token'] ?? null)) {
             http_response_code(400);
@@ -108,12 +114,12 @@ final class PlantationController
             $this->redirect('index.php?action=plantations');
         }
         $id = filter_var($_POST['id'] ?? null, FILTER_VALIDATE_INT);
-        if (!$id || !$this->plantations->find((int) $id)) {
+        if (!$id || !$this->plantations->findForUser((int) $id, $userId)) {
             http_response_code(404);
             $this->notFound();
             return;
         }
-        $this->plantations->deleteById((int) $id);
+        $this->plantations->deleteById((int) $id, $userId);
         $this->setFlash('Plantation supprimée avec ses suivis associés.');
         $this->redirect('index.php?action=plantations');
     }
@@ -128,7 +134,7 @@ final class PlantationController
                 $errors[] = 'Votre session de formulaire a expiré. Rechargez la page puis réessayez.';
             } else {
                 $errors = $this->validatePlantation($old);
-                if (!$errors && $this->plantations->create($old)) {
+                if (!$errors && $this->plantations->create($old, null)) {
                     $this->setFlash('Plantation ajoutée.');
                     $this->redirect('index.php?action=admin_plantations');
                 }
@@ -152,7 +158,7 @@ final class PlantationController
             $this->notFound(true);
             return;
         }
-        $this->render('back/plantation_details.php', [
+        $this->render('plantation_show.php', [
             'plantation' => $plantation,
             'suivis' => $this->suivis->forPlantation($id),
             'csrfToken' => $this->csrfToken(),
@@ -267,10 +273,16 @@ final class PlantationController
     private function render(string $view, array $data, string $title, string $activePage = 'dashboard', bool $admin = false): void
     {
         extract($data, EXTR_SKIP);
-        $activePage = $activePage;
+        $viewDirectory = $admin ? 'View/BackOffice/PlantationSuivi' : 'View/FrontOffice/PlantationSuivi';
         ob_start();
-        require __DIR__ . '/../views/' . $view;
-        $content = ob_get_clean();
-        require __DIR__ . '/../views/' . ($admin ? 'back/layout_admin.php' : 'front/layout.php');
+        require __DIR__ . '/../' . $viewDirectory . '/' . basename($view);
+        $content = (string) ob_get_clean();
+
+        if ($admin) {
+            require __DIR__ . '/../View/BackOffice/base.php';
+            return;
+        }
+
+        require __DIR__ . '/../View/FrontOffice/base.php';
     }
 }

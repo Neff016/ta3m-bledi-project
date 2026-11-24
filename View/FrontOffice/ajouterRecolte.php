@@ -111,7 +111,8 @@ $texteBouton = 'Ajouter';
           <li class="dropdown"><a href="#"><span>Terrains &amp; Récoltes</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
             <ul>
               <li><a href="mesTerrains.php">Mes terrains</a></li>
-              <li><a href="mesRecoltes.php" class="active">Mes récoltes</a></li>
+               <li><a href="mesRecoltes.php" class="active">Mes récoltes</a></li>
+               <?php require __DIR__ . '/partials/plantationLinks.php'; ?>
               <li><a href="recommandation.php">Recommandation IA</a></li>
               <li><a href="consommationEau.php">Consommation d'eau</a></li>
             </ul>
