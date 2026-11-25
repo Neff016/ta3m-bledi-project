@@ -156,6 +156,34 @@ class TerrainController
         $req->execute($this->parametres($terrain) + ['id' => $terrain->getId(), 'idU' => $terrain->getIdUtilisateur()]);
     }
 
+    // Back Office (admin) : modifie n'importe quel terrain, y compris son propriétaire
+    public function updateTerrainAdmin(Terrain $terrain): void
+    {
+        $sql = "UPDATE terrain
+                SET nom = :nom, localisation = :localisation, superficie = :superficie, typeSol = :typeSol,
+                    latitude = :lat, longitude = :lng, polygone = :poly, idUtilisateur = :idU
+                WHERE id = :id";
+        $req = config::getConnexion()->prepare($sql);
+        $req->execute($this->parametres($terrain) + ['id' => $terrain->getId(), 'idU' => $terrain->getIdUtilisateur()]);
+    }
+
+    // Back Office : agriculteurs actifs (liste « propriétaire » des formulaires admin)
+    public function listAgriculteurs(): array
+    {
+        return config::getConnexion()->query(
+            "SELECT id, nom, prenom, email FROM utilisateur WHERE role = 'AGRICULTEUR' AND statut = 'ACTIF' ORDER BY nom, prenom")->fetchAll();
+    }
+
+    // Règle métier : un terrain appartient forcément à un agriculteur actif
+    public function validateProprietaire($idUtilisateur): array
+    {
+        $id = filter_var($idUtilisateur, FILTER_VALIDATE_INT);
+        $req = config::getConnexion()->prepare(
+            "SELECT COUNT(*) FROM utilisateur WHERE id = :id AND role = 'AGRICULTEUR' AND statut = 'ACTIF'");
+        $req->execute(['id' => $id ?: 0]);
+        return $req->fetchColumn() > 0 ? [] : ['idUtilisateur' => 'Veuillez choisir un agriculteur actif.'];
+    }
+
     private function parametres(Terrain $t): array
     {
         return [

@@ -108,6 +108,26 @@ class RecolteController
         return $req->fetch();
     }
 
+    // Back Office : une récolte (n'importe quel agriculteur actif) avec son terrain et son propriétaire
+    public function getRecolteAdmin(int $id)
+    {
+        $sql = "SELECT r.*, t.nom AS terrainNom, t.localisation, t.idUtilisateur
+                FROM recolte r JOIN terrain t ON t.id = r.idTerrain JOIN utilisateur u ON u.id = t.idUtilisateur
+                WHERE r.id = :id AND u.statut <> 'SUPPRIME'";
+        $req = config::getConnexion()->prepare($sql);
+        $req->execute(['id' => $id]);
+        return $req->fetch();
+    }
+
+    // Back Office : terrains de tous les agriculteurs actifs (liste du formulaire récolte admin)
+    public function terrainsPourAdmin(): array
+    {
+        return config::getConnexion()->query(
+            "SELECT t.id, t.nom, t.localisation, t.idUtilisateur, CONCAT(u.prenom, ' ', u.nom) AS agriculteur
+             FROM terrain t JOIN utilisateur u ON u.id = t.idUtilisateur
+             WHERE u.statut = 'ACTIF' ORDER BY u.nom, u.prenom, t.nom")->fetchAll();
+    }
+
     // Page publique du QR code : récolte + terrain + agriculteur (sans email ni téléphone)
     public function getParCode(string $code)
     {

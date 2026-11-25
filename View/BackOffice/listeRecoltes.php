@@ -38,6 +38,7 @@ require __DIR__ . '/partials/boHaut.php';
                         <h1 class="h3 mb-0 text-gray-800">Liste des récoltes</h1>
                         <div class="d-flex flex-wrap" style="gap:6px">
                             <a href="exportCsv.php?<?= e(http_build_query(['type' => 'recoltes'] + $params)) ?>" class="btn btn-sm btn-success"><i class="fas fa-file-csv"></i> Exporter en CSV</a>
+                            <a href="formRecolte.php" class="btn btn-sm btn-primary"><i class="fas fa-plus"></i> Ajouter une récolte</a>
                         </div>
                     </div>
 
@@ -114,7 +115,8 @@ require __DIR__ . '/partials/boHaut.php';
                                                         <a href="../FrontOffice/tracabilite.php?code=<?= e($r['codeTracabilite']) ?>" target="_blank" title="Page publique"><i class="fas fa-qrcode"></i></a>
                                                     <?php endif; ?>
                                                 </td>
-                                                <td>
+                                                <td class="text-nowrap">
+                                                    <a href="formRecolte.php?id=<?= e($r['id']) ?>" class="btn btn-info btn-sm" title="Modifier"><i class="fas fa-pen"></i></a>
                                                     <form action="supprimerRecolte.php" method="POST" class="d-inline" data-confirm="Supprimer cette récolte ?">
                                                         <?= champCsrf() ?>
                                                         <input type="hidden" name="id" value="<?= e($r['id']) ?>">

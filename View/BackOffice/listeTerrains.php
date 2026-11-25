@@ -40,6 +40,7 @@ require __DIR__ . '/partials/boHaut.php';
                         <div>
                             <a href="carteTerrains.php" class="btn btn-sm btn-outline-primary"><i class="fas fa-globe-africa"></i> Voir sur la carte</a>
                             <a href="exportCsv.php?<?= e(http_build_query(['type' => 'terrains'] + $params)) ?>" class="btn btn-sm btn-success"><i class="fas fa-file-csv"></i> Exporter en CSV</a>
+                            <a href="formTerrain.php" class="btn btn-sm btn-primary"><i class="fas fa-plus"></i> Ajouter un terrain</a>
                         </div>
                     </div>
 
@@ -129,11 +130,12 @@ require __DIR__ . '/partials/boHaut.php';
                                                 </td>
                                                 <td class="text-center"><?= $t['latitude'] !== null ? '<i class="fas fa-map-marker-alt text-success" title="Position GPS"></i>' : '<span class="text-gray-400">—</span>' ?>
                                                     <?= $t['polygone'] ? '<i class="fas fa-draw-polygon text-primary" title="Parcelle dessinée"></i>' : '' ?></td>
-                                                <td>
+                                                <td class="text-nowrap">
+                                                    <a href="formTerrain.php?id=<?= e($t['id']) ?>" class="btn btn-info btn-sm" title="Modifier"><i class="fas fa-pen"></i></a>
                                                     <form action="supprimerTerrain.php" method="POST" class="d-inline" data-confirm="Supprimer ce terrain et toutes ses récoltes ?">
                                                         <?= champCsrf() ?>
                                                         <input type="hidden" name="id" value="<?= e($t['id']) ?>">
-                                                        <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Supprimer</button>
+                                                        <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
                                                     </form>
                                                 </td>
                                             </tr>
