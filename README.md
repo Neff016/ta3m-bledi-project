@@ -94,6 +94,20 @@ Si le dossier du projet n'a pas le nom `ta3m-bledi-project`, modifier aussi `LOG
 - Barre de **complétion du profil** (photo, téléphone, 1er terrain, 1re récolte, 1er badge)
 - Onglets : **Aperçu** (derniers badges et récoltes), **Modifier le profil** (aperçu de la photo avant envoi, retirer la photo), **Sécurité** (changement du mot de passe avec indicateur de force, date de la connexion précédente), **Zone sensible** (supprimer son compte avec mot de passe + mot « SUPPRIMER »)
 
+## Connexion sans mot de passe
+
+- **Clé d'accès (passkey / WebAuthn)** : Face ID, empreinte digitale, Windows Hello ou PIN de l'appareil.
+  On l'ajoute dans *Mon profil → Sécurité*, puis on clique « Face ID / empreinte » sur la page de connexion.
+  Le serveur garde seulement la clé **publique** (table `passkey`) et vérifie la signature d'un défi aléatoire
+  (`Controller/PasskeyController.php`, sans bibliothèque). Fonctionne sur `localhost` ou en HTTPS.
+- **Code par email** : `ConnexionCode.php` envoie un code à 6 chiffres (valable 15 min, 5 essais, à usage unique).
+- Le code par **SMS** n'est pas inclus : il demande un service payant (ex. Twilio).
+
+## Badges et points
+
+La page *Mes badges* explique comment gagner des points : niveau actuel (Graine → Gardien de la terre),
+les 3 étapes, le prochain badge conseillé et le tableau « badge → comment l'obtenir → points ».
+
 ## Envoi des emails (mot de passe oublié)
 
 Le code est envoyé avec Gmail (SMTP, sans bibliothèque externe : `Controller/MailHelper.php`).

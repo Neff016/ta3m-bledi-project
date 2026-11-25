@@ -101,31 +101,35 @@ function envoyerEmail(string $destinataire, string $nomDestinataire, string $suj
     return ['ok' => true];
 }
 
-// Email du code « mot de passe oublié »
-function envoyerCodeReinitialisation(string $email, string $prenom, string $code, int $minutes): array
+// Email du code : $motif = 'reset' (mot de passe oublié) ou 'connexion' (se connecter sans mot de passe)
+function envoyerCodeReinitialisation(string $email, string $prenom, string $code, int $minutes, string $motif = 'reset'): array
 {
     $p = htmlspecialchars($prenom, ENT_QUOTES, 'UTF-8');
+    $raison = $motif === 'connexion'
+        ? 'Voici votre code pour vous connecter à Taam Bledi sans mot de passe :'
+        : 'Vous avez demandé à réinitialiser votre mot de passe. Voici votre code :';
+    $sujet = $motif === 'connexion' ? 'Votre code de connexion Taam Bledi : ' : 'Votre code Taam Bledi : ';
     $html = <<<HTML
 <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;border:1px solid #e3e8e0;border-radius:12px;overflow:hidden">
   <div style="background:#2f5d3a;color:#fff;padding:18px 24px;font-size:20px;font-weight:bold">Taam Bledi</div>
   <div style="padding:24px;color:#333">
     <p>Bonjour {$p},</p>
-    <p>Vous avez demandé à réinitialiser votre mot de passe. Voici votre code :</p>
+    <p>{$raison}</p>
     <p style="font-size:32px;letter-spacing:8px;font-weight:bold;color:#2f5d3a;text-align:center;margin:24px 0">{$code}</p>
     <p>Ce code est valable <strong>{$minutes} minutes</strong>.</p>
-    <p style="color:#888;font-size:13px">Si vous n'êtes pas à l'origine de cette demande, ignorez cet email : votre mot de passe ne change pas.</p>
+    <p style="color:#888;font-size:13px">Si vous n'êtes pas à l'origine de cette demande, ignorez cet email : personne ne peut se connecter sans ce code.</p>
   </div>
 </div>
 HTML;
-    $texte = "Bonjour $prenom,\n\nVotre code Taam Bledi : $code\nIl est valable $minutes minutes.\n\n"
+    $texte = "Bonjour $prenom,\n\n$raison $code\nIl est valable $minutes minutes.\n\n"
            . "Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.";
-    return envoyerEmail($email, $prenom, 'Votre code Taam Bledi : ' . $code, $html, $texte);
+    return envoyerEmail($email, $prenom, $sujet . $code, $html, $texte);
 }
 
 // Crée un nouveau code et l'envoie par email.
 // Si l'email ne correspond à aucun compte actif, rien n'est envoyé mais on répond « ok »
 // (on ne révèle pas quels emails existent).
-function demanderCodeParEmail(UtilisateurController $utilisateurC, string $email): array
+function demanderCodeParEmail(UtilisateurController $utilisateurC, string $email, string $motif = 'reset'): array
 {
     $user = $utilisateurC->getByEmail($email);
     $code = $utilisateurC->creerCodeReinitialisation($email);
@@ -133,5 +137,5 @@ function demanderCodeParEmail(UtilisateurController $utilisateurC, string $email
         return ['ok' => true];
     }
     $_SESSION['reset_dernier_envoi'] = time();
-    return envoyerCodeReinitialisation($email, $user['prenom'], $code, UtilisateurController::CODE_DUREE_MINUTES);
+    return envoyerCodeReinitialisation($email, $user['prenom'], $code, UtilisateurController::CODE_DUREE_MINUTES, $motif);
 }

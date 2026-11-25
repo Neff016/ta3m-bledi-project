@@ -7,6 +7,26 @@ $badges        = (new BadgeController())->badgesDeUtilisateur($idUtilisateur);
 
 $obtenus = array_filter($badges, fn($b) => $b['dateAttribution'] !== null);
 $points  = array_sum(array_map(fn($b) => (int) $b['points'], $obtenus));
+
+// Niveaux selon le total de points
+$niveaux = [0 => 'Graine', 20 => 'Pousse', 50 => 'Jeune arbre', 100 => 'Arbre fruitier', 200 => 'Gardien de la terre'];
+$niveauActuel = 'Graine';
+$prochainSeuil = null;
+foreach ($niveaux as $seuil => $nom) {
+    if ($points >= $seuil) {
+        $niveauActuel = $nom;
+        $seuilActuel  = $seuil;
+    } elseif ($prochainSeuil === null) {
+        $prochainSeuil = $seuil;
+    }
+}
+$progression = $prochainSeuil === null ? 100
+    : (int) round(($points - $seuilActuel) / ($prochainSeuil - $seuilActuel) * 100);
+
+// Badges à gagner, du plus facile (moins de points) au plus difficile
+$aGagner = array_values(array_filter($badges, fn($b) => $b['dateAttribution'] === null));
+usort($aGagner, fn($a, $b) => $a['points'] <=> $b['points']);
+$prochainBadge = $aGagner[0] ?? null;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -79,7 +99,6 @@ $points  = array_sum(array_map(fn($b) => (int) $b['points'], $obtenus));
               <li><a href="mesBadges.php" class="active">Mes badges</a></li>
               <li><a href="connexion.php">Connexion</a></li>
               <li><a href="inscription.php">Inscription</a></li>
-              <li><a href="deconnexion.php">Déconnexion</a></li>
             </ul>
           </li>
           <li><a href="contact.html">Contact</a></li>
@@ -132,6 +151,80 @@ $points  = array_sum(array_map(fn($b) => (int) $b['points'], $obtenus));
                 </div>
               </div>
             <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+
+        <!-- ===== Comment gagner des points ? ===== -->
+        <h2 class="text-center mt-5 mb-4" id="gagner-points">Comment gagner des points ?</h2>
+
+        <!-- Niveau -->
+        <div class="gp-niveau mb-4">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+              <small class="text-muted">Votre niveau</small>
+              <p class="gp-niveau-nom"><i class="bi bi-tree"></i> <?= e($niveauActuel) ?></p>
+            </div>
+            <strong><?= $points ?> pts</strong>
+          </div>
+          <div class="gp-barre"><div style="width: <?= $progression ?>%"></div></div>
+          <small class="text-muted">
+            <?= $prochainSeuil === null
+                ? 'Niveau maximum atteint, bravo !'
+                : 'Encore ' . ($prochainSeuil - $points) . ' points pour le niveau « ' . e($niveaux[$prochainSeuil]) . ' ».' ?>
+          </small>
+          <div class="gp-niveaux mt-3">
+            <?php foreach ($niveaux as $seuil => $nom): ?>
+              <span class="<?= $points >= $seuil ? 'atteint' : '' ?>"><?= e($nom) ?> (<?= $seuil ?>)</span>
+            <?php endforeach; ?>
+          </div>
+        </div>
+
+        <!-- 3 étapes -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <div class="gp-etape"><span class="gp-num">1</span><h6>Faites l'action</h6>
+              <p class="text-muted small mb-0">Chaque badge a un critère : une plantation, un échange, un atelier…</p></div>
+          </div>
+          <div class="col-md-4">
+            <div class="gp-etape"><span class="gp-num">2</span><h6>Badge attribué</h6>
+              <p class="text-muted small mb-0">L'administrateur vérifie votre activité et vous attribue le badge.</p></div>
+          </div>
+          <div class="col-md-4">
+            <div class="gp-etape"><span class="gp-num">3</span><h6>Points gagnés</h6>
+              <p class="text-muted small mb-0">Les points du badge s'ajoutent à votre total et vous montez de niveau.</p></div>
+          </div>
+        </div>
+
+        <?php if ($prochainBadge): ?>
+          <div class="gp-prochain mb-4">
+            <i class="bi bi-lightbulb"></i> <strong>Prochain badge conseillé :</strong>
+            « <?= e($prochainBadge['nom']) ?> » — <?= e($prochainBadge['critere']) ?>
+            (<strong>+<?= e($prochainBadge['points']) ?> pts</strong>)
+          </div>
+        <?php endif; ?>
+
+        <!-- Tableau : badge → comment l'obtenir → points -->
+        <?php if (!empty($badges)): ?>
+          <div class="gp-table table-responsive">
+            <table class="table">
+              <thead>
+                <tr><th>Badge</th><th>Comment l'obtenir</th><th class="text-center">Points</th><th class="text-center">État</th></tr>
+              </thead>
+              <tbody>
+                <?php foreach ($badges as $b): ?>
+                  <tr>
+                    <td><strong><?= e($b['nom']) ?></strong></td>
+                    <td><?= e($b['critere']) ?><small class="d-block text-muted"><?= e($b['description']) ?></small></td>
+                    <td class="text-center"><span class="ub-points">+<?= e($b['points']) ?></span></td>
+                    <td class="text-center">
+                      <?= $b['dateAttribution'] !== null
+                          ? '<span class="text-success"><i class="bi bi-check-circle-fill"></i> Obtenu</span>'
+                          : '<span class="text-muted"><i class="bi bi-hourglass"></i> À faire</span>' ?>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
           </div>
         <?php endif; ?>
 

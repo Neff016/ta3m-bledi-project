@@ -76,6 +76,22 @@ CREATE TABLE IF NOT EXISTS utilisateur_badge (
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------
+-- Table passkey : clés d'accès (Face ID, empreinte, Windows Hello)
+-- On garde seulement la clé PUBLIQUE : l'empreinte ne quitte jamais l'appareil.
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS passkey (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  idUtilisateur INT NOT NULL,
+  credentialId VARCHAR(255) NOT NULL UNIQUE,
+  clePublique TEXT NOT NULL,
+  compteur INT UNSIGNED NOT NULL DEFAULT 0,
+  nom VARCHAR(50) NOT NULL,
+  dateCreation DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  derniereUtilisation DATETIME NULL,
+  CONSTRAINT fk_passkey_utilisateur FOREIGN KEY (idUtilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- ---------------------------------------------------------
 -- Données de test
 -- ---------------------------------------------------------
 INSERT IGNORE INTO badge (id, nom, description, critere, points) VALUES

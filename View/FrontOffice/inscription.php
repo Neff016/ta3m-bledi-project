@@ -113,7 +113,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <li><a href="mesBadges.php">Mes badges</a></li>
               <li><a href="connexion.php">Connexion</a></li>
               <li><a href="inscription.php" class="active">Inscription</a></li>
-              <li><a href="deconnexion.php">Déconnexion</a></li>
             </ul>
           </li>
           <li><a href="contact.html">Contact</a></li>

@@ -212,3 +212,33 @@
   .pf-actions { padding-top: 0; }
   .pf-etiquettes, .pf-contact, .pf-actions { justify-content: center; }
 }
+
+/* ---------- Connexion sans mot de passe ---------- */
+.ub-separateur { display: flex; align-items: center; gap: 12px; margin: 24px 0 16px; color: #6c757d; font-size: .9rem; }
+.ub-separateur::before, .ub-separateur::after { content: ""; flex: 1; height: 1px; background: #e3e8e0; }
+.ub-btn-alt { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 11px 16px;
+  border: 1px solid #cfd9cc; border-radius: 8px; background: #fff; color: #2f5d45; font-weight: 600; text-decoration: none; transition: .2s; }
+.ub-btn-alt:hover { background: #f0f5f1; border-color: #2f5d45; color: #2f5d45; }
+.ub-btn-alt i { font-size: 1.15rem; }
+.ub-btn-alt:disabled { opacity: .6; }
+
+/* ---------- Clés d'accès (profil) ---------- */
+.pf-cles { list-style: none; padding: 0; margin: 0 0 16px; }
+.pf-cles li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f1f3f5; }
+.pf-cles li i.bi-fingerprint { font-size: 1.4rem; color: #2f5d3a; }
+
+/* ---------- Comment gagner des points (Mes badges) ---------- */
+.gp-niveau { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 4px 16px rgba(0,0,0,.05); }
+.gp-niveau-nom { font-size: 1.4rem; color: #2f5d3a; margin: 0; }
+.gp-barre { height: 12px; border-radius: 12px; background: #edf2ea; overflow: hidden; margin: 12px 0 6px; }
+.gp-barre div { height: 100%; background: linear-gradient(90deg, #6a994e, #2f5d3a); border-radius: 12px; }
+.gp-niveaux { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; font-size: .82rem; color: #6c757d; }
+.gp-niveaux .atteint { color: #2f5d3a; font-weight: 600; }
+.gp-etape { background: #fff; border-radius: 14px; padding: 20px; height: 100%; text-align: center; box-shadow: 0 4px 16px rgba(0,0,0,.05); }
+.gp-etape .gp-num { width: 40px; height: 40px; border-radius: 50%; background: #e8f3e3; color: #2f5d3a; display: inline-flex;
+  align-items: center; justify-content: center; font-weight: 700; margin-bottom: 10px; }
+.gp-table { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,.05); }
+.gp-table table { margin: 0; }
+.gp-table th { background: #f3f8f1; color: #2f5d3a; font-weight: 600; }
+.gp-table td, .gp-table th { padding: 14px 16px; vertical-align: middle; }
+.gp-prochain { border: 2px dashed #6a994e; background: #f7fbf5; border-radius: 14px; padding: 16px 20px; }

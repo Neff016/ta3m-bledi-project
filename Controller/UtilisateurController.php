@@ -300,6 +300,14 @@ class UtilisateurController
         return ['ok' => true, 'id' => (int) $user['id']];
     }
 
+    // Le code ne sert qu'une fois (connexion par code)
+    public function consommerCode(int $id): void
+    {
+        config::getConnexion()
+            ->prepare("UPDATE utilisateur SET resetToken = NULL, resetExpiration = NULL, resetTentatives = 0 WHERE id = :id")
+            ->execute(['id' => $id]);
+    }
+
     /* =========================================================
      *  CONTRÔLE DE SAISIE (côté serveur)
      * ========================================================= */

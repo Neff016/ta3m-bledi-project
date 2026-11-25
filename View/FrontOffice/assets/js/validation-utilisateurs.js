@@ -139,6 +139,10 @@ document.addEventListener('DOMContentLoaded', function () {
     return verifierEmail('email');
   });
 
+  brancher('formCodeEmail', function () {
+    return verifierEmail('email');
+  });
+
   brancher('formCode', function () {
     const code = valeur('code');
     if (code === '') return afficherErreur('code', 'Le code est obligatoire.'), false;

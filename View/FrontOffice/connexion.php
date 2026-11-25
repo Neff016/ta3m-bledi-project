@@ -29,27 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($erreurs)) {
         $resultat = $utilisateurC->connecter($email, $motDePasse);
         if ($resultat['ok']) {
-            $user = $resultat['user'];
-
-            // 1) Déconnexion automatique de la session précédente (autre compte)
-            if (!empty($_SESSION['user_id'])) {
-                $utilisateurC->fermerSession((int) $_SESSION['user_id'], (string) ($_SESSION['session_token'] ?? ''));
-            }
-            $_SESSION = [];
-            session_regenerate_id(true);                   // nouvel identifiant de session (sécurité)
-
-            // 2) Nouvelle session (un seul navigateur à la fois par compte)
-            $_SESSION['user_id']           = (int) $user['id'];  // utilisé par tous les modules
-            $_SESSION['role']              = $user['role'];      // 'ADMIN' ou 'AGRICULTEUR'
-            $_SESSION['nom']               = $user['nom'];
-            $_SESSION['prenom']            = $user['prenom'];
-            $_SESSION['session_token']     = $utilisateurC->ouvrirSession((int) $user['id']);
-            $_SESSION['connexion_precedente'] = $user['derniereConnexion'] ?? null;   // affichée dans le profil
-            $utilisateurC->enregistrerConnexion((int) $user['id']);
-            $_SESSION['derniere_activite'] = time();
-
-            setFlash('Bienvenue ' . $user['prenom'] . ' !');
-            header('Location: ' . ($user['role'] === 'ADMIN' ? '../BackOffice/listeUtilisateurs.php' : 'profil.php'));
+            header('Location: ' . demarrerSession($utilisateurC, $resultat['user']));
             exit;
         }
         $erreurs['general'] = $resultat['erreur'];
@@ -129,7 +109,6 @@ $flash = getFlash();
               <li><a href="mesBadges.php">Mes badges</a></li>
               <li><a href="connexion.php" class="active">Connexion</a></li>
               <li><a href="inscription.php">Inscription</a></li>
-              <li><a href="deconnexion.php">Déconnexion</a></li>
             </ul>
           </li>
           <li><a href="contact.html">Contact</a></li>
@@ -181,15 +160,27 @@ $flash = getFlash();
               <a href="MotDePasseOublie.php">Mot de passe oublié ?</a>
             </div>
             <button type="submit" class="ub-btn">Se connecter</button>
-            <p class="text-center mt-3 mb-0">
-              Pas de compte ? <a href="inscription.php">S'inscrire</a>
-            </p>
           </form>
+
+          <!-- Se connecter SANS mot de passe -->
+          <div class="ub-separateur"><span>ou sans mot de passe</span></div>
+          <button type="button" id="btnPasskeyConnexion" class="ub-btn-alt">
+            <i class="bi bi-fingerprint"></i> Face ID / empreinte (clé d'accès)
+          </button>
+          <a href="ConnexionCode.php" class="ub-btn-alt mt-2">
+            <i class="bi bi-envelope-paper"></i> Recevoir un code par email
+          </a>
+          <div id="passkeyMessage" hidden></div>
+
+          <p class="text-center mt-4 mb-0">
+            Pas de compte ? <a href="inscription.php">S'inscrire</a>
+          </p>
         </div>
 
       </div>
     </section>
     <script src="assets/js/validation-utilisateurs.js"></script>
+    <script src="assets/js/passkey.js"></script>
   </main>
 
   <footer id="footer" class="footer dark-background">

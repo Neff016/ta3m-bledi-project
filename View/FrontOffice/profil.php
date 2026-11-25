@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../Controller/AuthGuard.php';
 require_once __DIR__ . '/../../Controller/UtilisateurController.php';
 require_once __DIR__ . '/../../Controller/UploadHelper.php';
+require_once __DIR__ . '/../../Controller/PasskeyController.php';
 
 $idUtilisateur = requireLogin();
 $utilisateurC  = new UtilisateurController();
@@ -133,6 +134,7 @@ $badges     = $utilisateurC->badgesRecents($idUtilisateur, 3);
 $recoltes   = $utilisateurC->recoltesRecentes($idUtilisateur, 4);
 $initiales  = mb_strtoupper(mb_substr($user['prenom'], 0, 1) . mb_substr($user['nom'], 0, 1));
 $precedente = $_SESSION['connexion_precedente'] ?? null;
+$passkeys   = (new PasskeyController())->listePasskeys($idUtilisateur);   // clés d'accès
 
 $mois = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août',
          'septembre', 'octobre', 'novembre', 'décembre'];
@@ -220,7 +222,6 @@ $completion = (int) round($faites / count($etapes) * 100);
               <li><a href="mesBadges.php">Mes badges</a></li>
               <li><a href="connexion.php">Connexion</a></li>
               <li><a href="inscription.php">Inscription</a></li>
-              <li><a href="deconnexion.php">Déconnexion</a></li>
             </ul>
           </li>
           <li><a href="contact.html">Contact</a></li>
@@ -327,7 +328,7 @@ $completion = (int) round($faites / count($etapes) * 100);
                 <div class="col-lg-6">
                   <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="mb-0">Derniers badges</h5>
-                    <a href="mesBadges.php" class="pf-lien">Tout voir</a>
+                    <a href="mesBadges.php#gagner-points" class="pf-lien">Gagner des points</a> · <a href="mesBadges.php" class="pf-lien">Tout voir</a>
                   </div>
                   <?php if (empty($badges)): ?>
                     <p class="pf-vide"><i class="bi bi-award"></i> Aucun badge pour l'instant. Ajoutez vos terrains et récoltes pour en gagner.</p>
@@ -483,6 +484,58 @@ $completion = (int) round($faites / count($etapes) * 100);
                   </form>
                 </div>
               </div>
+
+              <!-- Clés d'accès : se connecter sans mot de passe -->
+              <hr class="my-4">
+              <div class="row g-4">
+                <div class="col-lg-5">
+                  <h5><i class="bi bi-fingerprint"></i> Clés d'accès (passkeys)</h5>
+                  <p class="text-muted mb-2">
+                    Connectez-vous <strong>sans mot de passe</strong> avec Face ID, votre empreinte digitale,
+                    Windows Hello ou le code PIN de votre appareil. Votre empreinte ne quitte jamais votre appareil.
+                  </p>
+                  <p class="text-muted small mb-0">
+                    Autre possibilité : sur la page de connexion, « Recevoir un code par email ».
+                  </p>
+                </div>
+                <div class="col-lg-7">
+                  <?php if (empty($passkeys)): ?>
+                    <p class="pf-vide"><i class="bi bi-key"></i> Aucune clé d'accès pour l'instant.</p>
+                  <?php else: ?>
+                    <ul class="pf-cles">
+                      <?php foreach ($passkeys as $cle): ?>
+                        <li>
+                          <i class="bi bi-fingerprint"></i>
+                          <div class="flex-grow-1">
+                            <strong><?= e($cle['nom']) ?></strong>
+                            <small class="d-block text-muted">
+                              Ajoutée le <?= e($dateFr($cle['dateCreation'])) ?>
+                              · <?= $cle['derniereUtilisation'] ? 'utilisée le ' . e($dateFr($cle['derniereUtilisation'])) : 'jamais utilisée' ?>
+                            </small>
+                          </div>
+                          <form action="passkey.php" method="POST" onsubmit="return confirm('Supprimer cette clé d\'accès ?');">
+                            <?= champCsrf() ?>
+                            <input type="hidden" name="action" value="supprimer">
+                            <input type="hidden" name="idCle" value="<?= e($cle['id']) ?>">
+                            <button type="submit" class="pf-btn-contour pf-btn-petit" title="Supprimer"><i class="bi bi-trash"></i></button>
+                          </form>
+                        </li>
+                      <?php endforeach; ?>
+                    </ul>
+                  <?php endif; ?>
+
+                  <form id="formPasskey" novalidate>
+                    <?= champCsrf() ?>
+                    <label for="nomPasskey" class="form-label">Nom de la clé</label>
+                    <div class="d-flex gap-2 flex-wrap">
+                      <input type="text" class="form-control flex-grow-1 w-auto" id="nomPasskey" placeholder="Ex : Mon PC portable, Mon iPhone">
+                      <button type="submit" class="ub-btn pf-btn"><i class="bi bi-plus-lg"></i> Ajouter une clé d'accès</button>
+                    </div>
+                    <div class="ub-erreur" id="erreur-nomPasskey"></div>
+                  </form>
+                  <div id="passkeyMessage" hidden></div>
+                </div>
+              </div>
             </div>
 
             <!-- Zone sensible -->
@@ -519,6 +572,7 @@ $completion = (int) round($faites / count($etapes) * 100);
       </div>
     </section>
     <script src="assets/js/validation-utilisateurs.js"></script>
+    <script src="assets/js/passkey.js"></script>
   </main>
 
   <footer id="footer" class="footer dark-background">

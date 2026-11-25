@@ -165,6 +165,38 @@ function getFlash(): ?array
     return $flash;
 }
 
+/* =====================================================================
+ *  OUVERTURE DE SESSION (mot de passe, clé d'accès ou code par email)
+ * ===================================================================== */
+
+/**
+ * Connecte $user : ferme l'ancienne session, crée le jeton de session unique,
+ * retient la date de la connexion précédente. Retourne la page où aller.
+ * $utilisateurC est un UtilisateurController.
+ */
+function demarrerSession($utilisateurC, array $user): string
+{
+    // 1) Déconnexion automatique de la session précédente (autre compte)
+    if (!empty($_SESSION['user_id'])) {
+        $utilisateurC->fermerSession((int) $_SESSION['user_id'], (string) ($_SESSION['session_token'] ?? ''));
+    }
+    $_SESSION = [];
+    session_regenerate_id(true);                   // nouvel identifiant de session (sécurité)
+
+    // 2) Nouvelle session (un seul navigateur à la fois par compte)
+    $_SESSION['user_id']              = (int) $user['id'];  // utilisé par tous les modules
+    $_SESSION['role']                 = $user['role'];      // 'ADMIN' ou 'AGRICULTEUR'
+    $_SESSION['nom']                  = $user['nom'];
+    $_SESSION['prenom']               = $user['prenom'];
+    $_SESSION['session_token']        = $utilisateurC->ouvrirSession((int) $user['id']);
+    $_SESSION['connexion_precedente'] = $user['derniereConnexion'] ?? null;   // affichée dans le profil
+    $_SESSION['derniere_activite']    = time();
+    $utilisateurC->enregistrerConnexion((int) $user['id']);
+
+    setFlash('Bienvenue ' . $user['prenom'] . ' !');
+    return $user['role'] === 'ADMIN' ? '../BackOffice/listeUtilisateurs.php' : 'profil.php';
+}
+
 /* ---------------------------------------------------------------------
  *  Vérification automatique du jeton CSRF sur toutes les requêtes POST
  * --------------------------------------------------------------------- */
