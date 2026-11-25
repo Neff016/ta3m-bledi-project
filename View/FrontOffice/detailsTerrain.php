@@ -46,6 +46,18 @@ $contratForm = $contrat ?: ['type' => 'PROPRIETE', 'proprietaire' => '', 'loyerA
 $bioForm = $certif ?: ['organisme' => '', 'numeroCertificat' => '', 'dateDebutConversion' => '',
                        'dureeConversionMois' => 24, 'dateExpiration' => ''];
 $depense = ['categorie' => 'Semences', 'montant' => '', 'dateDepense' => date('Y-m-d'), 'description' => ''];
+// Modification d'une dépense : detailsTerrain.php?id=3&onglet=depenses&modifierDepense=12
+$depenseModifiee = null;
+if ($idDep = filter_input(INPUT_GET, 'modifierDepense', FILTER_VALIDATE_INT)) {
+    $depenseModifiee = $depenseC->getDepenseOfUser($idDep, $idUtilisateur);
+    if ($depenseModifiee && (int) $depenseModifiee['idTerrain'] === $id) {
+        $depense = ['categorie' => $depenseModifiee['categorie'], 'dateDepense' => $depenseModifiee['dateDepense'],
+                    'montant' => RecolteController::nombreCourt((float) $depenseModifiee['montant']),
+                    'description' => $depenseModifiee['description'] ?? ''];
+    } else {
+        $depenseModifiee = null;
+    }
+}
 $retour  = 'detailsTerrain.php?id=' . $id . '&onglet=';
 
 /* ---------------- Actions (formulaires des onglets) ---------------- */
@@ -103,13 +115,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    if ($action === 'ajouterDepense') {
+    if ($action === 'ajouterDepense' || $action === 'modifierDepense') {
         $onglet = 'depenses';
         $depense = ['categorie' => $_POST['categorie'] ?? '', 'montant' => trim($_POST['montant'] ?? ''),
                     'dateDepense' => $_POST['dateDepense'] ?? '', 'description' => trim($_POST['description'] ?? '')];
         $erreursDepense = $depenseC->valider($depense);
-        if (empty($erreursDepense)) {
-            $depenseC->ajouter($id, $depense);
+        if ($action === 'modifierDepense') {
+            // La dépense doit être sur CE terrain, qui appartient à l'utilisateur
+            $depenseModifiee = $depenseC->getDepenseOfUser((int) ($_POST['idDepense'] ?? 0), $idUtilisateur);
+            if (!$depenseModifiee || (int) $depenseModifiee['idTerrain'] !== $id) {
+                setFlash(t('Dépense introuvable.'), 'danger');
+                header('Location: ' . $retour . 'depenses');
+                exit;
+            }
+            if (empty($erreursDepense)) {
+                $depenseC->modifier(DepenseController::versObjet($depense, $id, (int) $depenseModifiee['id']));
+                setFlash(t('Dépense modifiée.'));
+                header('Location: ' . $retour . 'depenses');
+                exit;
+            }
+        } elseif (empty($erreursDepense)) {
+            $depenseC->ajouter(DepenseController::versObjet($depense, $id));
             $badges = (new BadgeAutoController())->verifier($idUtilisateur);
             setFlash(t('Dépense enregistrée.') . BadgeAutoController::message($badges));
             header('Location: ' . $retour . 'depenses');
@@ -436,10 +462,11 @@ require __DIR__ . '/partials/haut.php';
             <p class="small text-muted"><i class="bi bi-info-circle"></i> <?= te("Chiffre d'affaires = quantités vendables × prix du marché × classe qualité (Extra +20 %, II −20 %) × prime bio (+25 %). Bénéfice = chiffre d'affaires − dépenses − loyer ou part du propriétaire.") ?></p>
             <div class="row g-4">
               <div class="col-lg-5">
-                <h3 class="tb-sous-titre"><?= te('Nouvelle dépense') ?></h3>
+                <h3 class="tb-sous-titre"><?= te($depenseModifiee ? 'Modifier la dépense' : 'Nouvelle dépense') ?></h3>
                 <form action="<?= e($retour . 'depenses') ?>" method="POST" id="formDepense" novalidate>
                   <?= champCsrf() ?>
-                  <input type="hidden" name="action" value="ajouterDepense">
+                  <input type="hidden" name="action" value="<?= $depenseModifiee ? 'modifierDepense' : 'ajouterDepense' ?>">
+                  <?php if ($depenseModifiee): ?><input type="hidden" name="idDepense" value="<?= e($depenseModifiee['id']) ?>"><?php endif; ?>
                   <div class="row">
                     <div class="col-6 mb-3">
                       <label for="categorie" class="form-label"><?= te('Catégorie') ?></label>
@@ -466,7 +493,8 @@ require __DIR__ . '/partials/haut.php';
                     <input type="text" class="form-control <?= isset($erreursDepense['description']) ? 'is-invalid' : '' ?>" id="description" name="description" value="<?= e($depense['description']) ?>">
                     <div class="erreur" id="erreur-description"><?= te($erreursDepense['description'] ?? '') ?></div>
                   </div>
-                  <button type="submit" class="btn-hero border-0"><i class="bi bi-plus-lg"></i> <?= te('Enregistrer la dépense') ?></button>
+                  <button type="submit" class="btn-hero border-0"><i class="bi bi-<?= $depenseModifiee ? 'check-lg' : 'plus-lg' ?>"></i> <?= te('Enregistrer la dépense') ?></button>
+                  <?php if ($depenseModifiee): ?><a href="<?= e($retour . 'depenses') ?>" class="lien-details ms-3"><?= te('Annuler') ?></a><?php endif; ?>
                 </form>
               </div>
               <div class="col-lg-7">
@@ -485,8 +513,9 @@ require __DIR__ . '/partials/haut.php';
                             <td><?= te($d['categorie']) ?></td>
                             <td><?= e($d['description'] ?? '') ?></td>
                             <td class="text-end"><?= e(number_format((float) $d['montant'], 3, ',', ' ')) ?> DT</td>
-                            <td class="text-end">
-                              <form action="<?= e($retour . 'depenses') ?>" method="POST" data-confirm="<?= te('Supprimer cette dépense ?') ?>">
+                            <td class="text-end text-nowrap">
+                              <a href="<?= e($retour . 'depenses&modifierDepense=' . $d['id']) ?>" class="btn-icone" title="<?= te('Modifier') ?>"><i class="bi bi-pencil"></i></a>
+                              <form action="<?= e($retour . 'depenses') ?>" method="POST" class="d-inline" data-confirm="<?= te('Supprimer cette dépense ?') ?>">
                                 <?= champCsrf() ?>
                                 <input type="hidden" name="action" value="supprimerDepense">
                                 <input type="hidden" name="idDepense" value="<?= e($d['id']) ?>">

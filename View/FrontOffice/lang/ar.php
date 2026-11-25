@@ -654,4 +654,6 @@ return [
     'de CO₂e par kg' => 'من مكافئ CO₂ لكل كغ',
     'Estimation calculée par Taam Bledi à partir de la durée de culture, du rendement et des dépenses de l’agriculteur.' => 'تقدير يحسبه طعم بلادي انطلاقاً من مدة الزراعة والمردود ومصاريف الفلاح.',
     'Chiffre d\'affaires = quantités vendables × prix du marché × classe qualité (Extra +20 %, II −20 %) × prime bio (+25 %). Bénéfice = chiffre d\'affaires − dépenses − loyer ou part du propriétaire.' => 'رقم المعاملات = الكميات القابلة للبيع × سعر السوق × صنف الجودة (ممتاز +20 %، II −20 %) × منحة البيولوجي (+25 %). الربح = رقم المعاملات − المصاريف − الكراء أو نصيب المالك.',
+    'Dépense modifiée.' => 'تم تعديل المصروف.',
+    'Modifier la dépense' => 'تعديل المصروف',
 ];
