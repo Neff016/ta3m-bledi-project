@@ -382,6 +382,7 @@ $flash     = getFlash();
                                                 <td>
                                                     <form action="supprimerRecolte.php" method="POST" class="d-inline"
                                                           onsubmit="return confirm('Supprimer cette récolte ?');">
+                                                      <?= champCsrf() ?>
                                                         <input type="hidden" name="id" value="<?= e($r['id']) ?>">
                                                         <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Supprimer</button>
                                                     </form>

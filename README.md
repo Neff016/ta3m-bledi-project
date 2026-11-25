@@ -2,71 +2,123 @@
 
 ## Présentation
 
-Ce projet a été développé dans le cadre du **Projet Technologies Web** à **l’École Supérieure Privée d’Ingénierie et de Technologies (Esprit)** – Tunisie, durant l’année universitaire 2026–2027.
+Ce projet a été développé dans le cadre du **Projet Technologies Web (2A)** à **l'École Supérieure Privée d'Ingénierie et de Technologies (Esprit)** – Tunisie, année universitaire 2026–2027.
 
-**Ta3m Bledi** est une plateforme web permettant de découvrir, préserver, cultiver et échanger des variétés agricoles traditionnelles tunisiennes menacées par le changement climatique.
+**Taam Bledi** est une plateforme web permettant de découvrir, préserver, cultiver et échanger des variétés agricoles traditionnelles tunisiennes menacées par le changement climatique.
 
 ## Fonctionnalités
 
-- Comptes utilisateurs et badges
-- Musée des variétés disparues et témoignages
-- Mes plantations&#x20;
-- Tounes 2050&#x20;
-- Échange de récoltes
-- Ateliers&#x20;
+| Module | Front Office (agriculteur) | Back Office (admin) |
+|---|---|---|
+| **Utilisateurs et Badges** | Inscription, connexion / déconnexion, profil (infos + photo), changement de mot de passe, mot de passe oublié, mes badges | CRUD utilisateurs, rôles, blocage / déblocage, CRUD badges, attribution de badges |
+| **Terrains et Récoltes** | Mes terrains (CRUD), détails d'un terrain, mes récoltes (CRUD), recommandation, consommation d'eau | Liste de tous les terrains et récoltes (recherche, suppression), statistiques |
+| **Musée des variétés** | Catalogue des variétés, adoption de graines, témoignages | Gestion des variétés et témoignages |
+| Tounes 2050, Plantation et suivi, Échange de récoltes, Ateliers | *(autres membres de l'équipe)* | |
 
-## Technologies utilisées
+## Technologies
 
-### Frontend
+- **Front-end** : HTML5, CSS3, JavaScript, Bootstrap 5 (template AgriCulture), Bootstrap 4 (template SB Admin 2)
+- **Back-end** : PHP 8 (PDO), MySQL / MariaDB
+- **Environnement** : XAMPP (Apache + MySQL), Git / GitHub
 
-- HTML5, CSS, JavaScript
+## Architecture (MVC)
 
+```
+ta3m-bledi-project/
+├── Config/
+│   └── config.php            ← connexion PDO à la base (classe config)
+├── Model/                    ← classes métier (Utilisateur, Badge, Attribution, Terrain, Recolte)
+├── Controller/               ← requêtes SQL préparées + contrôle de saisie côté serveur
+│   ├── AuthGuard.php         ← sessions, contrôle d'accès (requireLogin / requireAdmin), e() = htmlspecialchars
+│   ├── UploadHelper.php      ← upload d'images sécurisé
+│   ├── UtilisateurController.php, BadgeController.php
+│   └── TerrainController.php, RecolteController.php
+├── View/
+│   ├── FrontOffice/          ← pages publiques et espace agriculteur (template AgriCulture)
+│   │   ├── partials/         ← formulaires réutilisés (terrain, récolte)
+│   │   └── assets/           ← css, js (validation-*.js), images
+│   └── BackOffice/           ← administration (template SB Admin 2)
+└── SQL/                      ← scripts de création de la base
+```
 
-### Backend
+## Installation
 
-- PHP&#x20;
-- MySQL
-- XAMPP / Apache
+1. **Cloner** le dépôt dans le dossier `htdocs` de XAMPP :
 
-## Architecture
+   ```bash
+   cd C:\xampp\htdocs
+   git clone https://github.com/Neff016/ta3m-bledi-project.git
+   ```
 
-Le projet suit le modèle **MVC (Modèle – Vue – Contrôleur)** :
+2. **Démarrer** Apache et MySQL dans le panneau de contrôle XAMPP.
 
-- `Controllers/` : gèrent les requêtes et choisissent la vue à afficher
-- `Models/` : contiennent les classes et assurent l'accès aux données
-- `Views/` : contiennent les pages du Front Office et du Back Office, avec `includes/` et `partials/`
+3. **Créer la base de données** : ouvrir http://localhost/phpmyadmin → onglet **SQL**, puis exécuter **dans cet ordre** :
+   1. `SQL/ta3m_bledi_utilisateurs_badges.sql`
+   2. `SQL/ta3m_bledi_terrains_recoltes.sql`
+
+   Base déjà créée avant la mise à jour sécurité ? Exécuter aussi `SQL/mise-a-jour-securite.sql`.
+
+   La base `ta3m_bledi` est créée avec des données de test.
+
+## Configuration
+
+Les paramètres de connexion sont dans `Config/config.php` (par défaut XAMPP) :
+
+| Paramètre | Valeur |
+|---|---|
+| Hôte | `localhost` |
+| Base | `ta3m_bledi` |
+| Utilisateur | `root` |
+| Mot de passe | *(vide)* |
+
+Si le dossier du projet n'a pas le nom `ta3m-bledi-project`, modifier aussi `LOGIN_PAGE` et `HOME_PAGE` dans `Controller/AuthGuard.php`.
+
+## Exécution
+
+- **Front Office** : http://localhost/ta3m-bledi-project/View/FrontOffice/index.html
+- **Connexion** : http://localhost/ta3m-bledi-project/View/FrontOffice/connexion.php
+- **Back Office** : se connecter avec un compte admin (redirection automatique)
+
+### Comptes de test
+
+| Email | Mot de passe | Rôle |
+|---|---|---|
+| admin@taambledi.tn | Admin@2026 | Admin |
+| ahmed@taambledi.tn | Ahmed@2026 | Agriculteur |
+| salma@taambledi.tn | Salma@2026 | Agriculteur |
+
+## Sécurité
+
+- Mots de passe hachés (`password_hash` / `password_verify`)
+- Requêtes préparées PDO (protection contre l'injection SQL)
+- Échappement de l'affichage avec `htmlspecialchars` (protection XSS)
+- Sessions : `session_regenerate_id` à la connexion, pages protégées par `requireLogin()` / `requireAdmin()`
+- **Session unique** : un jeton de session est enregistré (haché) dans la base ; si le compte s'ouvre sur un autre navigateur, l'ancienne session est fermée automatiquement (« Session incorrecte »)
+- **Déconnexion automatique** après 30 minutes d'inactivité, ou si le compte est bloqué ou supprimé
+- **Jeton CSRF** dans chaque formulaire POST, vérifié automatiquement : sans jeton valide, la requête est refusée (403)
+- **Compte supprimé** par l'admin : ses données sont effacées et il voit « Votre compte a été supprimé » s'il essaie de se connecter
+- **Mot de passe oublié par code** à 6 chiffres (haché, valable 15 min, 5 essais maximum)
+- Un agriculteur ne voit et ne modifie que ses propres terrains et récoltes
+- Suppressions uniquement en POST avec confirmation
+- Upload d'images : vérification du vrai type de fichier, taille limitée, nom aléatoire
+- Contrôle de saisie en **JavaScript** (client) **et en PHP** (serveur) sur tous les formulaires, sans validation HTML5
+
+## Organisation Git
+
+- `main` : version stable, intégrée
+- Une branche par module : `utilisateurs-et-badges`, `terrains-recoltes`, …
+- Intégration par **Pull Request** vers `main`
+- Suivi des tâches : **GitHub Project Board** (To Do / In Progress / Done)
 
 ## Contributeurs
 
 - Yasmine Neffeti
-- Yomna Ghannem
+- Yomna Ghannem (modules Utilisateurs et Badges, Terrains et Récoltes)
 - Lemis Zmander
 - Meriam Guerrida
 - Youssef Trabelsi
 - Belhassen Ghaleb
 
-## Contexte académique
-
-Développé à **l’École Supérieure Privée d’Ingénierie et de Technologies (Esprit)** – Tunisie.
-
-Projet Technologies Web | 2026–2027
-
-## Démarrage du projet
-
-1. Cloner le repository :
-
-```bash
-git clone https://github.com/Neff016/ta3m-bledi-project.git
-```
-
-2. Placer le projet dans le dossier `htdocs` de XAMPP.
-3. Démarrer **Apache** et **MySQL** depuis le panneau de contrôle XAMPP.
-4. Ouvrir dans le navigateur :
-
-```text
-http://localhost/ta3m-bledi-project//index.php
-```
-
 ## Remerciements
 
-Nous remercions nos tuteurs à **l’École Supérieure Privée d’Ingénierie et de Technologies (Esprit)** pour leur accompagnement et leurs conseils.
+Nous remercions nos tuteurs à **Esprit** pour leur accompagnement et leurs conseils.

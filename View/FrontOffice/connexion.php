@@ -2,15 +2,15 @@
 require_once __DIR__ . '/../../Controller/AuthGuard.php';
 require_once __DIR__ . '/../../Controller/UtilisateurController.php';
 
-// Déjà connecté → on ne montre pas la page de connexion
-if (!empty($_SESSION['user_id'])) {
-    header('Location: ' . (($_SESSION['role'] ?? '') === 'ADMIN' ? '../BackOffice/listeUtilisateurs.php' : 'profil.php'));
-    exit;
-}
-
 $utilisateurC = new UtilisateurController();
 $erreurs      = [];
 $email        = '';
+
+// Déjà connecté ? On montre quand même la page : se connecter avec un autre compte
+// fermera automatiquement la session actuelle.
+$dejaConnecte = !empty($_SESSION['user_id'])
+    ? trim(($_SESSION['prenom'] ?? '') . ' ' . ($_SESSION['nom'] ?? ''))
+    : null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email      = trim($_POST['email'] ?? '');
@@ -30,11 +30,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $resultat = $utilisateurC->connecter($email, $motDePasse);
         if ($resultat['ok']) {
             $user = $resultat['user'];
-            session_regenerate_id(true);               // nouvelle session (sécurité)
-            $_SESSION['user_id'] = (int) $user['id'];  // utilisé par tous les modules
-            $_SESSION['role']    = $user['role'];      // 'ADMIN' ou 'AGRICULTEUR'
-            $_SESSION['nom']     = $user['nom'];
-            $_SESSION['prenom']  = $user['prenom'];
+
+            // 1) Déconnexion automatique de la session précédente (autre compte)
+            if (!empty($_SESSION['user_id'])) {
+                $utilisateurC->fermerSession((int) $_SESSION['user_id'], (string) ($_SESSION['session_token'] ?? ''));
+            }
+            $_SESSION = [];
+            session_regenerate_id(true);                   // nouvel identifiant de session (sécurité)
+
+            // 2) Nouvelle session (un seul navigateur à la fois par compte)
+            $_SESSION['user_id']           = (int) $user['id'];  // utilisé par tous les modules
+            $_SESSION['role']              = $user['role'];      // 'ADMIN' ou 'AGRICULTEUR'
+            $_SESSION['nom']               = $user['nom'];
+            $_SESSION['prenom']            = $user['prenom'];
+            $_SESSION['session_token']     = $utilisateurC->ouvrirSession((int) $user['id']);
+            $_SESSION['derniere_activite'] = time();
+
             setFlash('Bienvenue ' . $user['prenom'] . ' !');
             header('Location: ' . ($user['role'] === 'ADMIN' ? '../BackOffice/listeUtilisateurs.php' : 'profil.php'));
             exit;
@@ -140,11 +151,18 @@ $flash = getFlash();
           <?php if ($flash): ?>
             <div class="alert alert-<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
           <?php endif; ?>
+          <?php if ($dejaConnecte): ?>
+            <div class="alert alert-info">
+              Vous êtes connecté(e) en tant que <strong><?= e($dejaConnecte) ?></strong>.
+              Se connecter avec un autre compte fermera automatiquement cette session.
+            </div>
+          <?php endif; ?>
           <?php if (isset($erreurs['general'])): ?>
             <div class="alert alert-danger"><?= e($erreurs['general']) ?></div>
           <?php endif; ?>
 
           <form id="formConnexion" action="" method="POST" novalidate>
+            <?= champCsrf() ?>
             <div class="mb-3">
               <label for="email" class="form-label">Email</label>
               <input type="text" class="form-control <?= isset($erreurs['email']) ? 'is-invalid' : '' ?>"

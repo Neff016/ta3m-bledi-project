@@ -135,6 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div class="ub-card">
           <form id="formInscription" action="" method="POST" novalidate>
+            <?= champCsrf() ?>
             <div class="row">
               <div class="col-md-6 mb-3">
                 <label for="nom" class="form-label">Nom</label>

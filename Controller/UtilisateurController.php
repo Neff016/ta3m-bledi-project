@@ -1,7 +1,8 @@
 <?php
 /*
  * Controller : Utilisateur
- * Inscription, connexion, profil, mot de passe oublié + gestion admin (CRUD, blocage).
+ * Inscription, connexion (session unique), profil, mot de passe oublié par code,
+ * gestion admin (CRUD, blocage, suppression).
  * Toutes les requêtes sont préparées (PDO).
  */
 require_once __DIR__ . '/../Config/config.php';
@@ -10,18 +11,25 @@ require_once __DIR__ . '/../Model/Utilisateur.php';
 class UtilisateurController
 {
     public const ROLES   = ['AGRICULTEUR' => 'Agriculteur', 'ADMIN' => 'Admin'];
-    public const STATUTS = ['ACTIF' => 'Actif', 'BLOQUE' => 'Bloqué'];
+    public const STATUTS = ['ACTIF' => 'Actif', 'BLOQUE' => 'Bloqué'];   // 'SUPPRIME' : compte supprimé par l'admin
+
+    // Mot de passe oublié : code à 6 chiffres
+    public const CODE_DUREE_MINUTES = 15;
+    public const CODE_ESSAIS_MAX    = 5;
 
     /* =========================================================
      *  LECTURE
      * ========================================================= */
 
+    // Les comptes supprimés n'apparaissent plus dans la liste
     public function listUtilisateurs(string $recherche = ''): array
     {
-        $sql = "SELECT id, nom, prenom, email, telephone, role, statut, dateInscription FROM utilisateur";
+        $sql = "SELECT id, nom, prenom, email, telephone, role, statut, dateInscription
+                FROM utilisateur
+                WHERE statut <> 'SUPPRIME'";
         $params = [];
         if ($recherche !== '') {
-            $sql .= " WHERE nom LIKE :q1 OR prenom LIKE :q2 OR email LIKE :q3";
+            $sql .= " AND (nom LIKE :q1 OR prenom LIKE :q2 OR email LIKE :q3)";
             $like = '%' . $recherche . '%';
             $params = ['q1' => $like, 'q2' => $like, 'q3' => $like];
         }
@@ -31,11 +39,19 @@ class UtilisateurController
         return $req->fetchAll();
     }
 
+    // Retourne aussi les comptes supprimés (pour pouvoir afficher "compte supprimé")
     public function getUtilisateur(int $id)
     {
         $req = config::getConnexion()->prepare("SELECT * FROM utilisateur WHERE id = :id");
         $req->execute(['id' => $id]);
         return $req->fetch();
+    }
+
+    // Compte existant et NON supprimé (sinon false)
+    public function getUtilisateurActif(int $id)
+    {
+        $user = $this->getUtilisateur($id);
+        return ($user && $user['statut'] !== 'SUPPRIME') ? $user : false;
     }
 
     public function getByEmail(string $email)
@@ -60,7 +76,7 @@ class UtilisateurController
     }
 
     /* =========================================================
-     *  AJOUT / MODIFICATION / SUPPRESSION
+     *  AJOUT / MODIFICATION
      * ========================================================= */
 
     public function addUtilisateur(Utilisateur $u): int
@@ -87,7 +103,7 @@ class UtilisateurController
         $sql = "UPDATE utilisateur
                 SET nom = :nom, prenom = :prenom, email = :email, telephone = :telephone,
                     role = :role, statut = :statut
-                WHERE id = :id";
+                WHERE id = :id AND statut <> 'SUPPRIME'";
         $req = config::getConnexion()->prepare($sql);
         $req->execute([
             'nom'       => $u->getNom(),
@@ -100,10 +116,13 @@ class UtilisateurController
         ]);
     }
 
+    // Change le mot de passe et annule tout code de réinitialisation en cours
     public function updateMotDePasse(int $id, string $motDePasseClair): void
     {
         $req = config::getConnexion()->prepare(
-            "UPDATE utilisateur SET motDePasse = :mdp, resetToken = NULL, resetExpiration = NULL WHERE id = :id"
+            "UPDATE utilisateur
+             SET motDePasse = :mdp, resetToken = NULL, resetExpiration = NULL, resetTentatives = 0
+             WHERE id = :id"
         );
         $req->execute(['mdp' => password_hash($motDePasseClair, PASSWORD_DEFAULT), 'id' => $id]);
     }
@@ -116,27 +135,58 @@ class UtilisateurController
 
     public function changerStatut(int $id, string $statut): bool
     {
-        $req = config::getConnexion()->prepare("UPDATE utilisateur SET statut = :statut WHERE id = :id");
+        $req = config::getConnexion()->prepare(
+            "UPDATE utilisateur SET statut = :statut WHERE id = :id AND statut <> 'SUPPRIME'"
+        );
         $req->execute(['statut' => $statut, 'id' => $id]);
         return $req->rowCount() > 0;
     }
 
-    // Supprime aussi ses terrains, récoltes et badges (ON DELETE CASCADE)
+    /* =========================================================
+     *  SUPPRESSION (par l'admin)
+     *  Le compte n'est pas effacé de la table : il passe au statut 'SUPPRIME'
+     *  pour que l'utilisateur voie "Votre compte a été supprimé" s'il essaie d'y accéder.
+     *  Ses données (terrains, récoltes, badges, photo, mot de passe) sont effacées.
+     * ========================================================= */
+
     public function deleteUtilisateur(int $id): bool
     {
-        $req = config::getConnexion()->prepare("DELETE FROM utilisateur WHERE id = :id");
-        $req->execute(['id' => $id]);
-        return $req->rowCount() > 0;
+        $pdo = config::getConnexion();
+        $pdo->beginTransaction();
+        try {
+            // Données liées au compte (les récoltes suivent les terrains : ON DELETE CASCADE)
+            $pdo->prepare("DELETE FROM terrain WHERE idUtilisateur = :id")->execute(['id' => $id]);
+            $pdo->prepare("DELETE FROM utilisateur_badge WHERE idUtilisateur = :id")->execute(['id' => $id]);
+
+            // Compte marqué supprimé : plus de mot de passe valide, plus de session
+            $req = $pdo->prepare(
+                "UPDATE utilisateur
+                 SET statut = 'SUPPRIME', motDePasse = '', photo = NULL, sessionToken = NULL,
+                     resetToken = NULL, resetExpiration = NULL, resetTentatives = 0
+                 WHERE id = :id AND statut <> 'SUPPRIME'"
+            );
+            $req->execute(['id' => $id]);
+            $ok = $req->rowCount() > 0;
+
+            $pdo->commit();
+            return $ok;
+        } catch (Throwable $ex) {
+            $pdo->rollBack();
+            throw $ex;
+        }
     }
 
     /* =========================================================
-     *  CONNEXION
-     *  Retourne ['ok' => true, 'user' => [...]] ou ['ok' => false, 'erreur' => '...']
+     *  CONNEXION + SESSION UNIQUE
      * ========================================================= */
 
+    // Retourne ['ok' => true, 'user' => [...]] ou ['ok' => false, 'erreur' => '...']
     public function connecter(string $email, string $motDePasse): array
     {
         $user = $this->getByEmail($email);
+        if ($user && $user['statut'] === 'SUPPRIME') {
+            return ['ok' => false, 'erreur' => "Ce compte a été supprimé par l'administrateur."];
+        }
         // Même message si l'email n'existe pas ou si le mot de passe est faux (sécurité)
         if (!$user || !password_verify($motDePasse, $user['motDePasse'])) {
             return ['ok' => false, 'erreur' => 'Email ou mot de passe incorrect.'];
@@ -147,38 +197,91 @@ class UtilisateurController
         return ['ok' => true, 'user' => $user];
     }
 
-    /* =========================================================
-     *  MOT DE PASSE OUBLIÉ
-     * ========================================================= */
-
-    // Crée un jeton valable 1 heure. Retourne le jeton (à mettre dans le lien) ou null.
-    public function creerJetonReinitialisation(string $email): ?string
+    // Crée un nouveau jeton de session : toute autre session de ce compte devient invalide
+    public function ouvrirSession(int $id): string
     {
-        $user = $this->getByEmail($email);
-        if (!$user) {
-            return null;
-        }
         $jeton = bin2hex(random_bytes(32));
-        $req = config::getConnexion()->prepare(
-            "UPDATE utilisateur
-             SET resetToken = :hash, resetExpiration = DATE_ADD(NOW(), INTERVAL 1 HOUR)
-             WHERE id = :id"
-        );
-        // On stocke seulement le hash du jeton (si la base fuit, les liens restent inutilisables)
-        $req->execute(['hash' => hash('sha256', $jeton), 'id' => $user['id']]);
+        $req = config::getConnexion()->prepare("UPDATE utilisateur SET sessionToken = :t WHERE id = :id");
+        $req->execute(['t' => hash('sha256', $jeton), 'id' => $id]);
         return $jeton;
     }
 
-    public function getByJeton(string $jeton)
+    public function fermerSession(int $id, string $jeton): void
     {
-        if (!preg_match('/^[a-f0-9]{64}$/', $jeton)) {
-            return false;
-        }
+        // Seulement si c'est bien la session active (ne déconnecte pas l'autre appareil)
         $req = config::getConnexion()->prepare(
-            "SELECT * FROM utilisateur WHERE resetToken = :hash AND resetExpiration > NOW()"
+            "UPDATE utilisateur SET sessionToken = NULL WHERE id = :id AND sessionToken = :t"
         );
-        $req->execute(['hash' => hash('sha256', $jeton)]);
-        return $req->fetch();
+        $req->execute(['id' => $id, 't' => hash('sha256', $jeton)]);
+    }
+
+    // Vérifie à chaque page protégée que la session est toujours valide
+    public function validerSession(int $id, string $jeton): array
+    {
+        $user = $this->getUtilisateur($id);
+        if (!$user) {
+            return ['ok' => false, 'message' => "Session incorrecte : ce compte n'existe plus."];
+        }
+        if ($user['statut'] === 'SUPPRIME') {
+            return ['ok' => false, 'message' => "Votre compte a été supprimé par l'administrateur."];
+        }
+        if ($user['statut'] === 'BLOQUE') {
+            return ['ok' => false, 'message' => "Votre compte a été bloqué par l'administrateur."];
+        }
+        if ($jeton === '' || empty($user['sessionToken']) || !hash_equals($user['sessionToken'], hash('sha256', $jeton))) {
+            return ['ok' => false, 'message' => 'Session incorrecte : votre compte a été ouvert sur un autre navigateur ou appareil. Vous avez été déconnecté.'];
+        }
+        return ['ok' => true, 'message' => ''];
+    }
+
+    /* =========================================================
+     *  MOT DE PASSE OUBLIÉ (code à 6 chiffres)
+     * ========================================================= */
+
+    // Crée un code valable 15 minutes. Retourne le code (à envoyer par email) ou null.
+    public function creerCodeReinitialisation(string $email): ?string
+    {
+        $user = $this->getByEmail($email);
+        if (!$user || $user['statut'] !== 'ACTIF') {
+            return null;
+        }
+        $code = (string) random_int(100000, 999999);
+        $req = config::getConnexion()->prepare(
+            "UPDATE utilisateur
+             SET resetToken = :hash,
+                 resetExpiration = DATE_ADD(NOW(), INTERVAL " . self::CODE_DUREE_MINUTES . " MINUTE),
+                 resetTentatives = 0
+             WHERE id = :id"
+        );
+        // On stocke seulement le hash du code
+        $req->execute(['hash' => hash('sha256', $code), 'id' => $user['id']]);
+        return $code;
+    }
+
+    // Retourne ['ok' => true, 'id' => ...] ou ['ok' => false, 'erreur' => '...']
+    public function verifierCode(string $email, string $code): array
+    {
+        $req = config::getConnexion()->prepare(
+            "SELECT id, resetToken, resetTentatives, (resetExpiration > NOW()) AS valide
+             FROM utilisateur WHERE email = :email AND statut = 'ACTIF'"
+        );
+        $req->execute(['email' => $email]);
+        $user = $req->fetch();
+
+        if (!$user || empty($user['resetToken']) || !$user['valide']) {
+            return ['ok' => false, 'erreur' => 'Code expiré ou invalide. Demandez un nouveau code.'];
+        }
+        if ((int) $user['resetTentatives'] >= self::CODE_ESSAIS_MAX) {
+            return ['ok' => false, 'erreur' => 'Trop d’essais. Demandez un nouveau code.'];
+        }
+        if (!hash_equals($user['resetToken'], hash('sha256', $code))) {
+            config::getConnexion()
+                ->prepare("UPDATE utilisateur SET resetTentatives = resetTentatives + 1 WHERE id = :id")
+                ->execute(['id' => $user['id']]);
+            $reste = self::CODE_ESSAIS_MAX - (int) $user['resetTentatives'] - 1;
+            return ['ok' => false, 'erreur' => "Code incorrect. Il vous reste $reste essai(s)."];
+        }
+        return ['ok' => true, 'id' => (int) $user['id']];
     }
 
     /* =========================================================
@@ -255,6 +358,8 @@ class UtilisateurController
 
     public function countUtilisateurs(): int
     {
-        return (int) config::getConnexion()->query("SELECT COUNT(*) FROM utilisateur")->fetchColumn();
+        return (int) config::getConnexion()
+            ->query("SELECT COUNT(*) FROM utilisateur WHERE statut <> 'SUPPRIME'")
+            ->fetchColumn();
     }
 }

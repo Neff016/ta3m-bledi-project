@@ -12,7 +12,7 @@ $idAdmin = requireAdmin();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id           = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
     $utilisateurC = new UtilisateurController();
-    $user         = $id ? $utilisateurC->getUtilisateur($id) : false;
+    $user         = $id ? $utilisateurC->getUtilisateurActif($id) : false;
 
     if (!$user) {
         setFlash("Cet utilisateur n'existe pas.", 'danger');
@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $utilisateurC->deleteUtilisateur($id);
         supprimerImage($user['photo'] ?? null, 'profils');
-        setFlash('Utilisateur supprimé avec succès.');
+        setFlash('Compte supprimé. Si cet utilisateur essaie de se connecter, il verra « compte supprimé ».');
     }
 }
 

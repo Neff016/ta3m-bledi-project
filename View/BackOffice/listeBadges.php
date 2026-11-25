@@ -375,6 +375,7 @@ $flash  = getFlash();
                                                     <a href="formBadge.php?id=<?= e($b['id']) ?>" class="btn btn-warning btn-sm" title="Modifier"><i class="fas fa-edit"></i></a>
                                                     <form action="supprimerBadge.php" method="POST" class="d-inline"
                                                           onsubmit="return confirm('Supprimer ce badge ? Il sera retiré à tous les utilisateurs.');">
+                                                      <?= champCsrf() ?>
                                                         <input type="hidden" name="id" value="<?= e($b['id']) ?>">
                                                         <button type="submit" class="btn btn-danger btn-sm" title="Supprimer"><i class="fas fa-trash"></i></button>
                                                     </form>

@@ -2,17 +2,23 @@
 require_once __DIR__ . '/../../Controller/AuthGuard.php';
 require_once __DIR__ . '/../../Controller/UtilisateurController.php';
 
-$utilisateurC = new UtilisateurController();
-$jeton        = $_GET['jeton'] ?? ($_POST['jeton'] ?? '');
-$user         = $utilisateurC->getByJeton($jeton);   // false si lien invalide ou expiré
-$erreurs      = [];
+// Accessible seulement après avoir validé le code
+if (empty($_SESSION['reset_autorise'])) {
+    header('Location: MotDePasseOublie.php');
+    exit;
+}
 
-if ($user && $_SERVER['REQUEST_METHOD'] === 'POST') {
+$utilisateurC = new UtilisateurController();
+$idUtilisateur = (int) $_SESSION['reset_autorise'];
+$erreurs = [];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $erreurs = $utilisateurC->validateMotDePasse(
         $_POST['nouveauMdp'] ?? '', $_POST['confirmMdp'] ?? '', 'nouveauMdp', 'confirmMdp'
     );
     if (empty($erreurs)) {
-        $utilisateurC->updateMotDePasse((int) $user['id'], $_POST['nouveauMdp']);  // efface aussi le jeton
+        $utilisateurC->updateMotDePasse($idUtilisateur, $_POST['nouveauMdp']);  // efface aussi le code
+        unset($_SESSION['reset_autorise'], $_SESSION['reset_email'], $_SESSION['reset_code_demo']);
         setFlash('Mot de passe changé. Vous pouvez vous connecter.');
         header('Location: connexion.php');
         exit;
@@ -111,34 +117,24 @@ if ($user && $_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div class="ub-card">
-          <?php if (!$user): ?>
-            <div class="alert alert-danger">Ce lien est invalide ou a expiré.</div>
-            <p class="text-center mb-0"><a href="MotDePasseOublie.php">Demander un nouveau lien</a></p>
-          <?php else: ?>
-            <p class="text-center mb-4">
-              Choisissez un nouveau mot de passe pour votre compte.
-            </p>
-            <form id="formReinitialiser" action="" method="POST" novalidate>
-              <input type="hidden" name="jeton" value="<?= e($jeton) ?>">
-              <div class="mb-3">
-                <label for="nouveauMdp" class="form-label">Nouveau mot de passe</label>
-                <input type="password" class="form-control <?= isset($erreurs['nouveauMdp']) ? 'is-invalid' : '' ?>"
-                       id="nouveauMdp" name="nouveauMdp">
-                <small class="text-muted">8 caractères minimum, avec au moins une lettre et un chiffre.</small>
-                <div class="ub-erreur" id="erreur-nouveauMdp"><?= e($erreurs['nouveauMdp'] ?? '') ?></div>
-              </div>
-              <div class="mb-3">
-                <label for="confirmMdp" class="form-label">Confirmer le mot de passe</label>
-                <input type="password" class="form-control <?= isset($erreurs['confirmMdp']) ? 'is-invalid' : '' ?>"
-                       id="confirmMdp" name="confirmMdp">
-                <div class="ub-erreur" id="erreur-confirmMdp"><?= e($erreurs['confirmMdp'] ?? '') ?></div>
-              </div>
-              <button type="submit" class="ub-btn">Changer le mot de passe</button>
-              <p class="text-center mt-3 mb-0">
-                <a href="connexion.php">Retour à la connexion</a>
-              </p>
-            </form>
-          <?php endif; ?>
+          <div class="alert alert-success">Code vérifié ✔ Choisissez votre nouveau mot de passe.</div>
+          <form id="formReinitialiser" action="" method="POST" novalidate>
+            <?= champCsrf() ?>
+            <div class="mb-3">
+              <label for="nouveauMdp" class="form-label">Nouveau mot de passe</label>
+              <input type="password" class="form-control <?= isset($erreurs['nouveauMdp']) ? 'is-invalid' : '' ?>"
+                     id="nouveauMdp" name="nouveauMdp">
+              <small class="text-muted">8 caractères minimum, avec au moins une lettre et un chiffre.</small>
+              <div class="ub-erreur" id="erreur-nouveauMdp"><?= e($erreurs['nouveauMdp'] ?? '') ?></div>
+            </div>
+            <div class="mb-3">
+              <label for="confirmMdp" class="form-label">Confirmer le mot de passe</label>
+              <input type="password" class="form-control <?= isset($erreurs['confirmMdp']) ? 'is-invalid' : '' ?>"
+                     id="confirmMdp" name="confirmMdp">
+              <div class="ub-erreur" id="erreur-confirmMdp"><?= e($erreurs['confirmMdp'] ?? '') ?></div>
+            </div>
+            <button type="submit" class="ub-btn">Changer le mot de passe</button>
+          </form>
         </div>
 
       </div>

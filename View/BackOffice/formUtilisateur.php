@@ -11,7 +11,7 @@ $modeEdition = (bool) $id;
 $existant    = null;
 
 if ($modeEdition) {
-    $existant = $utilisateurC->getUtilisateur($id);
+    $existant = $utilisateurC->getUtilisateurActif($id);
     if (!$existant) {
         setFlash("Cet utilisateur n'existe pas.", 'danger');
         header('Location: listeUtilisateurs.php');
@@ -392,6 +392,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         <div class="card-body">
                             <form id="formUtilisateur" action="" method="POST" novalidate data-edition="<?= $modeEdition ? '1' : '0' ?>">
+                              <?= champCsrf() ?>
                                 <div class="form-row">
                                     <div class="form-group col-md-6">
                                         <label for="nom">Nom</label>

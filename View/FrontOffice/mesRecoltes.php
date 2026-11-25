@@ -141,6 +141,7 @@ $flash         = getFlash();
                         <a href="modifierRecolte.php?id=<?= e($r['id']) ?>" title="Modifier"><i class="bi bi-pencil"></i></a>
                         <form action="supprimerRecolte.php" method="POST" class="d-inline"
                               onsubmit="return confirm('Supprimer cette récolte ?');">
+                          <?= champCsrf() ?>
                           <input type="hidden" name="id" value="<?= e($r['id']) ?>">
                           <button type="submit" class="btn-icone danger" title="Supprimer"><i class="bi bi-trash"></i></button>
                         </form>

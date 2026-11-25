@@ -102,6 +102,7 @@ $idUtilisateur = requireLogin();
           <div class="card shadow-sm">
             <div class="card-body">
               <form action="" method="POST">
+                <?= champCsrf() ?>
 
                 <div class="mb-3">
                   <label for="idTerrain" class="form-label">Terrain</label>

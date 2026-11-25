@@ -23,11 +23,13 @@ CREATE TABLE IF NOT EXISTS utilisateur (
 -- Colonnes du module (ajoutées seulement si elles n'existent pas encore)
 ALTER TABLE utilisateur
   ADD COLUMN IF NOT EXISTS telephone VARCHAR(8) NULL,
-  ADD COLUMN IF NOT EXISTS statut VARCHAR(10) NOT NULL DEFAULT 'ACTIF',
+  ADD COLUMN IF NOT EXISTS statut VARCHAR(10) NOT NULL DEFAULT 'ACTIF',   -- ACTIF / BLOQUE / SUPPRIME
   ADD COLUMN IF NOT EXISTS photo VARCHAR(100) NULL,
   ADD COLUMN IF NOT EXISTS dateInscription DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   ADD COLUMN IF NOT EXISTS resetToken VARCHAR(64) NULL,
-  ADD COLUMN IF NOT EXISTS resetExpiration DATETIME NULL;
+  ADD COLUMN IF NOT EXISTS resetExpiration DATETIME NULL,
+  ADD COLUMN IF NOT EXISTS resetTentatives INT NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS sessionToken VARCHAR(64) NULL;
 
 -- Comptes de test (mots de passe hachés avec password_hash)
 --   admin@taambledi.tn  /  Admin@2026   (ADMIN)

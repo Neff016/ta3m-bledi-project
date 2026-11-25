@@ -139,6 +139,14 @@ document.addEventListener('DOMContentLoaded', function () {
     return verifierEmail('email');
   });
 
+  brancher('formCode', function () {
+    const code = valeur('code');
+    if (code === '') return afficherErreur('code', 'Le code est obligatoire.'), false;
+    if (!/^\d{6}$/.test(code)) return afficherErreur('code', 'Le code doit contenir exactement 6 chiffres.'), false;
+    afficherErreur('code', '');
+    return true;
+  });
+
   brancher('formReinitialiser', function () {
     return verifierMotDePasse('nouveauMdp', 'confirmMdp');
   });

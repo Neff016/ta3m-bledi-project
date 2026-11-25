@@ -395,6 +395,7 @@ $flash        = getFlash();
                                                     </a>
                                                     <?php if (!$moi): ?>
                                                         <form action="changerStatutUtilisateur.php" method="POST" class="d-inline">
+                                                          <?= champCsrf() ?>
                                                             <input type="hidden" name="id" value="<?= e($u['id']) ?>">
                                                             <?php if ($u['statut'] === 'ACTIF'): ?>
                                                                 <button type="submit" class="btn btn-secondary btn-sm" title="Bloquer"><i class="fas fa-lock"></i></button>
@@ -403,7 +404,8 @@ $flash        = getFlash();
                                                             <?php endif; ?>
                                                         </form>
                                                         <form action="supprimerUtilisateur.php" method="POST" class="d-inline"
-                                                              onsubmit="return confirm('Supprimer cet utilisateur ? Ses terrains, récoltes et badges seront aussi supprimés.');">
+                                                              onsubmit="return confirm('Supprimer ce compte ? Ses terrains, récoltes et badges seront effacés et il ne pourra plus se connecter.');">
+                                                          <?= champCsrf() ?>
                                                             <input type="hidden" name="id" value="<?= e($u['id']) ?>">
                                                             <button type="submit" class="btn btn-danger btn-sm" title="Supprimer"><i class="fas fa-trash"></i></button>
                                                         </form>

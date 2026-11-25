@@ -200,6 +200,7 @@ $initiales = mb_strtoupper(mb_substr($user['prenom'], 0, 1) . mb_substr($user['n
             <div class="col-md-8">
               <h4>Modifier mes informations</h4>
               <form id="formProfil" action="" method="POST" enctype="multipart/form-data" novalidate>
+                <?= champCsrf() ?>
                 <input type="hidden" name="action" value="infos">
                 <div class="row">
                   <div class="col-md-6 mb-3">
@@ -241,6 +242,7 @@ $initiales = mb_strtoupper(mb_substr($user['prenom'], 0, 1) . mb_substr($user['n
 
               <h4>Changer mon mot de passe</h4>
               <form id="formMotDePasse" action="" method="POST" novalidate>
+                <?= champCsrf() ?>
                 <input type="hidden" name="action" value="motdepasse">
                 <div class="mb-3">
                   <label for="ancienMdp" class="form-label">Ancien mot de passe</label>

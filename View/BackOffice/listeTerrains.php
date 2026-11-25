@@ -383,6 +383,7 @@ $flash     = getFlash();
                                                 <td>
                                                     <form action="supprimerTerrain.php" method="POST" class="d-inline"
                                                           onsubmit="return confirm('Supprimer ce terrain et toutes ses récoltes ?');">
+                                                      <?= champCsrf() ?>
                                                         <input type="hidden" name="id" value="<?= e($t['id']) ?>">
                                                         <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Supprimer</button>
                                                     </form>

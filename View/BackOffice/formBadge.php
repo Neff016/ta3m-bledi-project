@@ -390,6 +390,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         <div class="card-body">
                             <form id="formBadge" action="" method="POST" enctype="multipart/form-data" novalidate>
+                              <?= champCsrf() ?>
                                 <div class="form-row">
                                     <div class="form-group col-md-6">
                                         <label for="nom">Nom du badge</label>

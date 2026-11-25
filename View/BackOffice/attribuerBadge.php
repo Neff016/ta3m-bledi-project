@@ -363,6 +363,7 @@ $flash        = getFlash();
                                 </div>
                                 <div class="card-body">
                                     <form id="formAttribution" action="" method="POST" novalidate>
+                                      <?= champCsrf() ?>
                                         <div class="form-group">
                                             <label for="idUtilisateur">Utilisateur</label>
                                             <select id="idUtilisateur" name="idUtilisateur" class="form-control <?= isset($erreurs['idUtilisateur']) ? 'is-invalid' : '' ?>">
@@ -430,6 +431,7 @@ $flash        = getFlash();
                                                         <td>
                                                             <form action="supprimerAttribution.php" method="POST" class="d-inline"
                                                                   onsubmit="return confirm('Retirer ce badge à cet utilisateur ?');">
+                                                              <?= champCsrf() ?>
                                                                 <input type="hidden" name="id" value="<?= e($a['id']) ?>">
                                                                 <button type="submit" class="btn btn-danger btn-sm" title="Retirer"><i class="fas fa-trash"></i></button>
                                                             </form>

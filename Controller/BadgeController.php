@@ -183,7 +183,7 @@ class BadgeController
         $idU = filter_var($data['idUtilisateur'] ?? '', FILTER_VALIDATE_INT);
         $idB = filter_var($data['idBadge'] ?? '', FILTER_VALIDATE_INT);
 
-        if (!$idU || !$utilisateurC->getUtilisateur($idU)) {
+        if (!$idU || !$utilisateurC->getUtilisateurActif($idU)) {
             $erreurs['idUtilisateur'] = 'Veuillez choisir un utilisateur.';
         }
         if (!$idB || !$this->getBadge($idB)) {

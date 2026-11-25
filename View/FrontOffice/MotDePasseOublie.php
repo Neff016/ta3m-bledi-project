@@ -5,8 +5,6 @@ require_once __DIR__ . '/../../Controller/UtilisateurController.php';
 $utilisateurC = new UtilisateurController();
 $erreurs      = [];
 $email        = '';
-$envoye       = false;
-$lienDemo     = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
@@ -17,15 +15,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($erreurs)) {
-        $jeton  = $utilisateurC->creerJetonReinitialisation($email);
-        $envoye = true;   // même message que l'email existe ou non (sécurité)
-        if ($jeton) {
-            // Pas de serveur mail sur XAMPP : on affiche le lien pour la démonstration.
-            // En production, ce lien serait envoyé par email (fonction mail() / PHPMailer).
-            $lienDemo = 'ReinitialiserMotDePasse.php?jeton=' . $jeton;
-        }
+        $code = $utilisateurC->creerCodeReinitialisation($email);
+
+        // On passe à la page du code dans tous les cas (on ne révèle pas si l'email existe)
+        $_SESSION['reset_email'] = $email;
+        unset($_SESSION['reset_autorise']);
+
+        // Pas de serveur mail sur XAMPP : le code est gardé en session pour la démonstration.
+        // En production, il serait envoyé par email (fonction mail() / PHPMailer).
+        $_SESSION['reset_code_demo'] = $code;
+
+        header('Location: VerifierCode.php');
+        exit;
     }
 }
+
+$flash = getFlash();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -119,34 +124,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div class="ub-card">
-          <?php if ($envoye): ?>
-            <div class="alert alert-success">
-              Si un compte existe avec cet email, un lien de réinitialisation (valable 1 heure) vient d'être envoyé.
-            </div>
-            <?php if ($lienDemo): ?>
-              <div class="alert alert-warning">
-                <strong>Mode démonstration</strong> (pas de serveur mail sur XAMPP) :<br>
-                <a href="<?= e($lienDemo) ?>">Ouvrir le lien de réinitialisation</a>
-              </div>
-            <?php endif; ?>
-            <p class="text-center mb-0"><a href="connexion.php">Retour à la connexion</a></p>
-          <?php else: ?>
-            <p class="text-center mb-4">
-              Entrez votre adresse email. Vous recevrez un lien pour réinitialiser votre mot de passe.
-            </p>
-            <form id="formMotDePasseOublie" action="" method="POST" novalidate>
-              <div class="mb-3">
-                <label for="email" class="form-label">Email</label>
-                <input type="text" class="form-control <?= isset($erreurs['email']) ? 'is-invalid' : '' ?>"
-                       id="email" name="email" value="<?= e($email) ?>" placeholder="exemple@mail.com">
-                <div class="ub-erreur" id="erreur-email"><?= e($erreurs['email'] ?? '') ?></div>
-              </div>
-              <button type="submit" class="ub-btn">Envoyer le lien</button>
-              <p class="text-center mt-3 mb-0">
-                <a href="connexion.php">Retour à la connexion</a>
-              </p>
-            </form>
+          <?php if ($flash): ?>
+            <div class="alert alert-<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
           <?php endif; ?>
+          <p class="text-center mb-4">
+            Entrez votre adresse email. Vous recevrez un <strong>code à 6 chiffres</strong> pour réinitialiser votre mot de passe.
+          </p>
+          <form id="formMotDePasseOublie" action="" method="POST" novalidate>
+            <?= champCsrf() ?>
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input type="text" class="form-control <?= isset($erreurs['email']) ? 'is-invalid' : '' ?>"
+                     id="email" name="email" value="<?= e($email) ?>" placeholder="exemple@mail.com">
+              <div class="ub-erreur" id="erreur-email"><?= e($erreurs['email'] ?? '') ?></div>
+            </div>
+            <button type="submit" class="ub-btn">Recevoir le code</button>
+            <p class="text-center mt-3 mb-0">
+              <a href="connexion.php">Retour à la connexion</a>
+            </p>
+          </form>
         </div>
 
       </div>

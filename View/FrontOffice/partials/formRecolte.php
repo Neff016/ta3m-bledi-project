@@ -6,6 +6,7 @@
  */
 ?>
 <form action="" method="POST" id="formRecolte" novalidate>
+  <?= champCsrf() ?>
   <div class="row">
 
     <div class="col-md-6 mb-4">

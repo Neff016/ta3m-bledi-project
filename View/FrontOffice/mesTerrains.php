@@ -141,6 +141,7 @@ $flash         = getFlash();
                       <a href="modifierTerrain.php?id=<?= e($t['id']) ?>" title="Modifier"><i class="bi bi-pencil"></i></a>
                       <form action="supprimerTerrain.php" method="POST" class="d-inline"
                             onsubmit="return confirm('Supprimer ce terrain et toutes ses récoltes ?');">
+                        <?= champCsrf() ?>
                         <input type="hidden" name="id" value="<?= e($t['id']) ?>">
                         <button type="submit" class="btn-icone danger" title="Supprimer"><i class="bi bi-trash"></i></button>
                       </form>
