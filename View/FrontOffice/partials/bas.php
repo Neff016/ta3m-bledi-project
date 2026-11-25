@@ -29,6 +29,7 @@
             <ul>
               <li><a href="recommandation.php"><?= te('Recommandation IA') ?></a></li>
               <li><a href="consommationEau.php"><?= te("Consommation d'eau") ?></a></li>
+              <li><a href="bilanEnvironnemental.php"><?= te('Bilan environnemental') ?></a></li>
             </ul>
           </div>
         </div>

@@ -25,6 +25,22 @@ document.addEventListener('DOMContentLoaded', function () {
     return d;
   }
 
+  // Parcelles : on ne montre que celles du terrain choisi
+  const choixTerrain = document.getElementById('idTerrain');
+  const choixParcelle = document.getElementById('idParcelle');
+  function filtrerParcelles() {
+    if (!choixParcelle) return;
+    Array.prototype.forEach.call(choixParcelle.options, function (o) {
+      if (!o.value) return;
+      const visible = o.dataset.terrain === choixTerrain.value;
+      o.hidden = !visible;
+      o.disabled = !visible;
+      if (!visible && o.selected) choixParcelle.value = '';
+    });
+  }
+  choixTerrain.addEventListener('change', filtrerParcelles);
+  filtrerParcelles();
+
   form.addEventListener('submit', function (event) {
     let valide = true;
     const aujourdhui = new Date();
@@ -61,6 +77,14 @@ document.addEventListener('DOMContentLoaded', function () {
     else if (q <= 0) valide = afficherErreur('quantite', 'La quantité doit être supérieure à 0.') && valide;
     else if (q > 1000000) valide = afficherErreur('quantite', 'La quantité ne peut pas dépasser 1 000 000.') && valide;
     else afficherErreur('quantite', '');
+
+    // Parcelle : doit appartenir au terrain choisi
+    if (choixParcelle && choixParcelle.value) {
+      const opt = choixParcelle.options[choixParcelle.selectedIndex];
+      valide = afficherErreur('idParcelle', opt.dataset.terrain !== choixTerrain.value ? 'Cette parcelle n’appartient pas au terrain choisi.' : '') && valide;
+    } else if (choixParcelle) {
+      afficherErreur('idParcelle', '');
+    }
 
     // Unité
     valide = afficherErreur('unite', ['kg', 'quintal', 'tonne'].indexOf(document.getElementById('unite').value) === -1 ? 'Veuillez choisir une unité.' : '') && valide;

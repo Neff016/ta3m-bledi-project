@@ -213,3 +213,74 @@ body.rtl .actions-mini a, body.rtl .btn-icone { margin-left: 0; margin-right: 14
 .tb-public-infos i { color: var(--tb-vert-moyen); margin-inline-end: 6px; }
 .tb-public-pied { text-align: center; color: var(--tb-gris); padding: 20px; font-size: .85rem; }
 @media (max-width: 767px) { .tb-public-produit { grid-template-columns: 1fr; } }
+
+/* =====================================================================
+ *  Contrat foncier, certification bio, parcelles, qualité, bilan environnemental
+ * ===================================================================== */
+.btn-hero.btn-sm { padding: 6px 14px; font-size: .95rem; border-radius: 10px; }
+
+/* Étiquettes dans l'en-tête du terrain (fond vert foncé) */
+.tb-etiquette { display: inline-flex; align-items: center; gap: 5px; background: rgba(255, 255, 255, .16); color: #fff;
+  border: 1px solid rgba(255, 255, 255, .35); border-radius: 20px; padding: 3px 12px; font-size: .85rem; }
+.tb-etiquette-bio { background: #fff; color: var(--tb-vert); font-weight: 700; }
+
+/* Badge bio sur la photo d'un terrain (Mes terrains) */
+.tb-photo-terrain .badge-bio { position: absolute; top: 14px; inset-inline-start: 14px; background: #fff; color: var(--tb-vert);
+  font-weight: 700; font-size: .85rem; padding: 5px 10px; border-radius: 8px; }
+.tb-photo-terrain .badge-bio.conversion { color: #8a6d1f; }
+
+/* Classe qualité, bio, conversion (le texte est toujours écrit : pas seulement la couleur) */
+.tb-classe { display: inline-flex; align-items: center; gap: 4px; font-size: .78rem; font-weight: 700; border-radius: 8px;
+  padding: 2px 8px; border: 1px solid transparent; line-height: 1.5; }
+.tb-classe-extra { background: #fff4d6; color: #7a5500; border-color: #e9c46a; }
+.tb-classe-i { background: var(--tb-vert-clair); color: var(--tb-vert); border-color: #b9d8b0; }
+.tb-classe-ii { background: #eef0ef; color: #4d5652; border-color: #cfd5d2; }
+.tb-classe-bio { background: var(--tb-vert); color: #fff; }
+.tb-classe-conversion { background: #fff; color: #8a6d1f; border-color: #e9c46a; border-style: dashed; }
+
+/* Choix de la classe (page Contrôle qualité) */
+.tb-choix-classe { display: flex; gap: 10px; flex-wrap: wrap; }
+.tb-choix-classe label.tb-classe { cursor: pointer; padding: 10px 16px; font-size: .95rem; flex-direction: column; min-width: 96px; opacity: .65; }
+.tb-choix-classe label.tb-classe small { font-weight: 400; }
+.tb-choix-classe .btn-check:checked + label.tb-classe { opacity: 1; box-shadow: 0 0 0 3px rgba(47, 93, 58, .35); }
+.tb-choix-classe .btn-check:focus-visible + label.tb-classe { outline: 2px solid var(--tb-vert); outline-offset: 2px; }
+.tb-apercu-prix { background: var(--tb-vert-clair); border-radius: 14px; padding: 14px 16px; margin-top: 12px; }
+.tb-apercu-prix strong { display: block; font-size: 1.6rem; color: var(--tb-vert); }
+
+/* Note environnementale A → E (couleurs type Nutri-Score, la lettre est toujours visible) */
+.tb-note-env { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 7px;
+  font-weight: 800; font-size: .9rem; color: #fff; vertical-align: middle; }
+.tb-note-a { background: #038141; } .tb-note-b { background: #85bb2f; } .tb-note-c { background: #fecb02; color: #3b3000; }
+.tb-note-d { background: #ee8100; } .tb-note-e { background: #e63e11; } .tb-note-x { background: #9aa5a0; }
+.tb-note-petite { width: 20px; height: 20px; font-size: .72rem; border-radius: 5px; }
+.tb-note-grande { width: 44px; height: 44px; font-size: 1.4rem; border-radius: 10px; }
+.tb-note-eteinte { opacity: .3; }
+.tb-kpi .tb-note-env { grid-row: span 2; color: #fff; }
+.tb-kpi .tb-note-env.tb-note-c { color: #3b3000; }
+
+/* Jauge (surface découpée, avancement de la conversion bio) */
+.tb-jauge { height: 10px; background: #edf2ee; border-radius: 10px; overflow: hidden; }
+.tb-jauge div { height: 100%; background: var(--tb-vert-moyen); border-radius: 10px; }
+
+.tb-resume { background: var(--tb-fond); border-radius: 14px; padding: 12px 16px; }
+.tb-statut-bio.tb-statut-certifie { color: var(--tb-vert); }
+.tb-statut-bio.tb-statut-conversion { color: #8a6d1f; }
+.tb-statut-bio.tb-statut-expire { color: #b02a37; }
+
+/* Carte des parcelles */
+.tb-carte-vide { display: flex; align-items: center; justify-content: center; text-align: center; background: var(--tb-fond); padding: 20px; }
+.tb-etiquette-carte { background: rgba(255, 255, 255, .85); border: 0; font-weight: 700; box-shadow: none; }
+
+/* Plan de rotation : une couleur douce par famille + le nom de la famille écrit dans chaque case */
+.tb-rotation { border-collapse: separate; border-spacing: 6px; min-width: 760px; }
+.tb-rotation th { font-size: .85rem; vertical-align: middle; border: 0; }
+.tb-rotation thead th.tb-rotation-plan { color: var(--tb-vert); }
+.tb-rotation td { border-radius: 12px; padding: 8px 10px; font-size: .85rem; border: 2px solid transparent; vertical-align: top; }
+.tb-famille-cereale { background: #f6e7c1; color: #5c4400; }
+.tb-famille-legumineuse { background: #d9eed1; color: #234d1c; }
+.tb-famille-legume { background: #fde0d6; color: #6b2412; }
+.tb-famille-jachere { background: #ece8df; color: #4d4637; }
+.tb-famille-perenne { background: #dde8f3; color: #1f3d5c; }
+.tb-famille-autre { background: #eef0ef; color: #4d5652; }
+.tb-rotation td.tb-case-plan { border-style: dashed; border-color: rgba(0, 0, 0, .18); }
+.tb-rotation td.tb-case-alerte { border-color: #e63e11; }

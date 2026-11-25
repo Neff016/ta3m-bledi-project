@@ -5,12 +5,20 @@
  */
 require_once __DIR__ . '/../../Controller/AuthGuard.php';
 require_once __DIR__ . '/../../Controller/RecolteController.php';
+require_once __DIR__ . '/../../Controller/EnvironnementController.php';
 require_once __DIR__ . '/../../Controller/Langue.php';
+require_once __DIR__ . '/partials/badgesRecolte.php';
 
 $idUtilisateur = requireLogin();
 $recolteC      = new RecolteController();
 $recoltes      = $recolteC->listRecoltesByUser($idUtilisateur);
 $totalKg       = array_sum(array_map(fn($r) => (float) $r['quantiteKg'], $recoltes));
+$qualites      = (new ControleQualiteController())->parRecolteDeUtilisateur($idUtilisateur);
+$certifs       = (new CertificationBioController())->parTerrainDeUtilisateur($idUtilisateur);
+$notesEnv      = [];
+foreach ((new EnvironnementController())->bilansUtilisateur($idUtilisateur) as $b) {
+    $notesEnv[(int) $b['id']] = $b['bilan']['note'];
+}
 $flash   = getFlash();
 
 $titrePage  = 'Mes récoltes';
@@ -66,8 +74,12 @@ require __DIR__ . '/partials/haut.php';
                           <span class="tb-mini-photo tb-mini-icone"><i class="bi bi-flower1"></i></span>
                         <?php endif; ?>
                       </td>
-                      <td><strong><?= e($r['culture']) ?></strong></td>
-                      <td><a href="detailsTerrain.php?id=<?= e($r['idTerrain']) ?>" class="tb-lien"><?= e($r['terrainNom']) ?></a></td>
+                      <td><strong><?= e($r['culture']) ?></strong>
+                        <div><?= badgesRecolte($qualites[(int) $r['id']] ?? null,
+                                               CertificationBioController::statutRecolte($certifs[(int) $r['idTerrain']] ?? null, $r['dateRecolte']),
+                                               $notesEnv[(int) $r['id']] ?? null) ?></div></td>
+                      <td><a href="detailsTerrain.php?id=<?= e($r['idTerrain']) ?>" class="tb-lien"><?= e($r['terrainNom']) ?></a>
+                        <?php if ($r['parcelleNom']): ?><small class="d-block text-muted"><?= e($r['parcelleNom']) ?></small><?php endif; ?></td>
                       <td><?= e(date('d/m/Y', strtotime($r['datePlantation']))) ?></td>
                       <td><?= e(date('d/m/Y', strtotime($r['dateRecolte']))) ?></td>
                       <td class="text-end">
@@ -78,6 +90,7 @@ require __DIR__ . '/partials/haut.php';
                         <?php if ($r['codeTracabilite']): ?>
                           <a href="etiquette.php?id=<?= e($r['id']) ?>" class="btn-icone" title="<?= te('Étiquette QR') ?>" target="_blank"><i class="bi bi-qr-code"></i></a>
                         <?php endif; ?>
+                        <a href="qualiteRecolte.php?id=<?= e($r['id']) ?>" class="btn-icone" title="<?= te('Contrôle qualité') ?>"><i class="bi bi-award"></i></a>
                         <a href="modifierRecolte.php?id=<?= e($r['id']) ?>" class="btn-icone" title="<?= te('Modifier') ?>"><i class="bi bi-pencil"></i></a>
                         <form action="supprimerRecolte.php" method="POST" class="d-inline" data-confirm="<?= te('Supprimer cette récolte ?') ?>">
                           <?= champCsrf() ?>

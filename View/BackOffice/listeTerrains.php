@@ -4,6 +4,8 @@
  */
 require_once __DIR__ . '/../../Controller/AuthGuard.php';
 require_once __DIR__ . '/../../Controller/TerrainController.php';
+require_once __DIR__ . '/../../Controller/ContratFoncierController.php';
+require_once __DIR__ . '/../../Controller/CertificationBioController.php';
 require_once __DIR__ . '/partials/boOutils.php';
 
 requireAdmin();                                   // Admin SEULEMENT
@@ -21,6 +23,10 @@ $parPage = 10;
 
 $resultat = $terrainC->listAllTerrains($filtres, $tri, $ordre, $page, $parPage);
 $terrains = $resultat['lignes'];
+$certifs  = [];
+foreach ((new CertificationBioController())->listAll() as $b) {
+    $certifs[(int) $b['idTerrain']] = CertificationBioController::statut($b);
+}
 $total    = $resultat['total'];
 $params   = array_filter($filtres + ['tri' => $tri, 'ordre' => $ordre], fn($v) => $v !== '');
 $flash    = getFlash();
@@ -97,13 +103,14 @@ require __DIR__ . '/partials/boHaut.php';
                                             <th><?= enteteTri('superficie', 'Superficie (ha)', $tri, $ordre, $params) ?></th>
                                             <th><?= enteteTri('typeSol', 'Sol', $tri, $ordre, $params) ?></th>
                                             <th><?= enteteTri('nbRecoltes', 'Récoltes', $tri, $ordre, $params) ?></th>
+                                            <th>Foncier / bio</th>
                                             <th>GPS</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php if (empty($terrains)): ?>
-                                            <tr><td colspan="9" class="text-center">Aucun terrain trouvé.</td></tr>
+                                            <tr><td colspan="10" class="text-center">Aucun terrain trouvé.</td></tr>
                                         <?php endif; ?>
                                         <?php foreach ($terrains as $t): ?>
                                             <tr>
@@ -113,7 +120,13 @@ require __DIR__ . '/partials/boHaut.php';
                                                 <td><?= e($t['localisation']) ?></td>
                                                 <td><?= e($t['superficie']) ?></td>
                                                 <td><?= e($t['typeSol']) ?></td>
-                                                <td><?= e($t['nbRecoltes']) ?></td>
+                                                <td><?= e($t['nbRecoltes']) ?><?= $t['nbParcelles'] > 0 ? ' <small class="text-muted">· ' . e($t['nbParcelles']) . ' parc.</small>' : '' ?></td>
+                                                <td>
+                                                    <?= $t['typeContrat'] ? '<small>' . e(ContratFoncierController::TYPES[$t['typeContrat']] ?? $t['typeContrat']) . '</small>' : '<span class="text-gray-400">—</span>' ?>
+                                                    <?php $sb = $certifs[(int) $t['id']] ?? null; ?>
+                                                    <?php if ($sb === 'CERTIFIE'): ?><span class="badge badge-success">Bio</span>
+                                                    <?php elseif ($sb === 'CONVERSION'): ?><span class="badge badge-warning">Conversion</span><?php endif; ?>
+                                                </td>
                                                 <td class="text-center"><?= $t['latitude'] !== null ? '<i class="fas fa-map-marker-alt text-success" title="Position GPS"></i>' : '<span class="text-gray-400">—</span>' ?>
                                                     <?= $t['polygone'] ? '<i class="fas fa-draw-polygon text-primary" title="Parcelle dessinée"></i>' : '' ?></td>
                                                 <td>

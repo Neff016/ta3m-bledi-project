@@ -7,6 +7,8 @@ require_once __DIR__ . '/../../Controller/AuthGuard.php';
 require_once __DIR__ . '/../../Controller/TerrainController.php';
 require_once __DIR__ . '/../../Controller/AnalyseController.php';
 require_once __DIR__ . '/../../Controller/MeteoController.php';
+require_once __DIR__ . '/../../Controller/ContratFoncierController.php';
+require_once __DIR__ . '/../../Controller/CertificationBioController.php';
 require_once __DIR__ . '/../../Controller/Langue.php';
 
 $idUtilisateur = requireLogin();
@@ -34,7 +36,9 @@ foreach ($terrains as $t) {
 
 $superficie = array_sum(array_column($terrains, 'superficie'));
 $rentab     = $a['rentabilite'];
-$benefice   = $rentab['totalRevenu'] - $rentab['totalDepenses'];
+$benefice   = $rentab['totalRevenu'] - $rentab['totalDepenses'] - $rentab['totalFoncier'];
+$finsContrat = (new ContratFoncierController())->alertesFin($idUtilisateur);
+$alertesBio  = (new CertificationBioController())->alertes($idUtilisateur);
 $annee      = (int) date('Y');
 
 $titrePage  = 'Tableau de bord';
@@ -59,6 +63,17 @@ require __DIR__ . '/partials/haut.php';
         <?php if ($flash): ?>
           <div class="alert alert-<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
         <?php endif; ?>
+
+        <?php foreach ($finsContrat as $c): ?>
+          <div class="alert alert-<?= $c['joursRestants'] < 0 ? 'danger' : 'warning' ?> d-flex gap-2 align-items-center"><i class="bi bi-calendar-x fs-5"></i>
+            <span><strong><?= e($c['terrainNom']) ?> :</strong>
+              <?= $c['joursRestants'] < 0 ? te('Le contrat foncier de ce terrain est terminé depuis le {d}.', ['d' => date('d/m/Y', strtotime($c['dateFin']))])
+                                          : te('Le contrat foncier se termine dans {n} jour(s), le {d} : pensez à le renouveler.', ['n' => $c['joursRestants'], 'd' => date('d/m/Y', strtotime($c['dateFin']))]) ?>
+              <a href="detailsTerrain.php?id=<?= e($c['idTerrain']) ?>&amp;onglet=foncier" class="alert-link"><?= te('Voir le contrat') ?></a></span></div>
+        <?php endforeach; ?>
+        <?php foreach ($alertesBio as [$type, $icone, $texte, $valeurs]): ?>
+          <div class="alert alert-<?= e($type) ?> d-flex gap-2 align-items-center"><i class="bi <?= e($icone) ?> fs-5"></i> <span><?= te($texte, $valeurs) ?></span></div>
+        <?php endforeach; ?>
 
         <?php foreach (array_slice($alertes, 0, 3) as [$nomTerrain, [$type, $icone, $texte, $valeurs]]): ?>
           <div class="alert alert-<?= e($type) ?> d-flex gap-2 align-items-center"><i class="bi <?= e($icone) ?> fs-5"></i>
@@ -159,7 +174,7 @@ require __DIR__ . '/partials/haut.php';
                     <div>
                       <?= te('Votre rendement de {culture} à {wilaya} est {sens} la {base}.', [
                           'culture' => $c['culture'], 'wilaya' => $c['wilaya'],
-                          'sens'    => t($c['ecart'] >= 0 ? 'au-dessus de' : 'en dessous de'), 'base' => t($c['base'])]) ?>
+                          'sens'    => t($c['ecart'] >= 0 ? 'au-dessus de' : 'en dessous de'), 'base' => t($c['base'][0], $c['base'][1])]) ?>
                       <small class="d-block text-muted"><?= e(number_format($c['moi'], 2, ',', ' ')) ?> t/ha · <?= te('référence') ?> <?= e(number_format($c['reference'], 2, ',', ' ')) ?> t/ha</small>
                     </div>
                   </div>
@@ -179,13 +194,14 @@ require __DIR__ . '/partials/haut.php';
               <?php endif; ?>
               <div class="table-responsive">
                 <table class="table align-middle tb-table">
-                  <thead><tr><th><?= te('Terrain') ?></th><th class="text-end"><?= te("Chiffre d'affaires") ?></th><th class="text-end"><?= te('Dépenses') ?></th><th class="text-end"><?= te('Bénéfice') ?></th><th></th></tr></thead>
+                  <thead><tr><th><?= te('Terrain') ?></th><th class="text-end"><?= te("Chiffre d'affaires") ?></th><th class="text-end"><?= te('Dépenses') ?></th><th class="text-end"><?= te('Loyer ou part du propriétaire') ?></th><th class="text-end"><?= te('Bénéfice') ?></th><th></th></tr></thead>
                   <tbody>
                     <?php foreach ($rentab['terrains'] as $r): ?>
                       <tr>
                         <td><strong><?= e($r['nom']) ?></strong></td>
                         <td class="text-end"><?= e(number_format($r['revenu'], 0, ',', ' ')) ?> DT</td>
                         <td class="text-end"><?= e(number_format($r['depenses'], 0, ',', ' ')) ?> DT</td>
+                        <td class="text-end"><?= $r['foncier'] > 0 ? e(number_format($r['foncier'], 0, ',', ' ')) . ' DT' : '<span class="text-muted">—</span>' ?></td>
                         <td class="text-end fw-bold <?= $r['benefice'] < 0 ? 'text-danger' : 'text-success' ?>"><?= e(number_format($r['benefice'], 0, ',', ' ')) ?> DT</td>
                         <td class="text-end"><a href="detailsTerrain.php?id=<?= e($r['id']) ?>&amp;onglet=depenses" class="tb-lien"><?= te('Détails') ?></a></td>
                       </tr>

@@ -106,6 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <li><a href="mesRecoltes.php">Mes récoltes</a></li>
               <li><a href="recommandation.php">Recommandation IA</a></li>
               <li><a href="consommationEau.php">Consommation d'eau</a></li>
+              <li><a href="bilanEnvironnemental.php">Bilan environnemental</a></li>
             </ul>
           </li>
           <li class="dropdown"><a href="#"><span>Mon compte</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>

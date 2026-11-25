@@ -4,11 +4,15 @@
  */
 require_once __DIR__ . '/../../Controller/AuthGuard.php';
 require_once __DIR__ . '/../../Controller/TerrainController.php';
+require_once __DIR__ . '/../../Controller/ContratFoncierController.php';
+require_once __DIR__ . '/../../Controller/CertificationBioController.php';
 require_once __DIR__ . '/../../Controller/Langue.php';
 
 $idUtilisateur = requireLogin();                 // pas connecté → page de connexion
 $terrains      = (new TerrainController())->listTerrainsByUser($idUtilisateur);   // SEULEMENT ses terrains
 $flash         = getFlash();
+$contrats      = (new ContratFoncierController())->parTerrainDeUtilisateur($idUtilisateur);
+$certifs       = (new CertificationBioController())->parTerrainDeUtilisateur($idUtilisateur);
 
 $superficie   = array_sum(array_column($terrains, 'superficie'));
 $production   = array_sum(array_column($terrains, 'productionKg'));
@@ -85,9 +89,16 @@ require __DIR__ . '/partials/haut.php';
                   <div class="tb-photo-terrain" <?php if ($t['photo']): ?>style="background-image:url('assets/img/uploads/terrains/<?= e($t['photo']) ?>')"<?php endif; ?>>
                     <?php if (!$t['photo']): ?><i class="bi bi-image"></i><?php endif; ?>
                     <span class="badge-sol"><?= te($t['typeSol']) ?></span>
+                    <?php $sb = CertificationBioController::statut($certifs[(int) $t['id']] ?? null); ?>
+                    <?php if ($sb === 'CERTIFIE' || $sb === 'CONVERSION'): ?>
+                      <span class="badge-bio <?= $sb === 'CONVERSION' ? 'conversion' : '' ?>"><i class="bi bi-<?= $sb === 'CERTIFIE' ? 'flower1' : 'hourglass-split' ?>"></i> <?= te($sb === 'CERTIFIE' ? 'Bio' : 'Conversion') ?></span>
+                    <?php endif; ?>
                   </div>
                   <div class="tb-corps-terrain">
                     <h3><?= e($t['nom']) ?></h3>
+                    <?php if (isset($contrats[(int) $t['id']])): ?>
+                      <p class="small text-muted mb-1"><i class="bi bi-file-earmark-text"></i> <?= te(ContratFoncierController::TYPES[$contrats[(int) $t['id']]['type']]) ?></p>
+                    <?php endif; ?>
                     <p class="sous-titre">
                       <?php if ((int) $t['nbRecoltes'] === 0): ?>
                         <?= te('Aucune récolte') ?>

@@ -4,6 +4,7 @@
  */
 require_once __DIR__ . '/../../Controller/AuthGuard.php';
 require_once __DIR__ . '/../../Controller/RecolteController.php';
+require_once __DIR__ . '/../../Controller/ControleQualiteController.php';
 require_once __DIR__ . '/partials/boOutils.php';
 
 requireAdmin();
@@ -90,13 +91,14 @@ require __DIR__ . '/partials/boHaut.php';
                                             <th>Plantation</th>
                                             <th><?= enteteTri('dateRecolte', 'Récolte', $tri, $ordre, $params) ?></th>
                                             <th><?= enteteTri('quantiteKg', 'Quantité (kg)', $tri, $ordre, $params) ?></th>
+                                            <th>Qualité</th>
                                             <th>QR</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php if (empty($recoltes)): ?>
-                                            <tr><td colspan="8" class="text-center">Aucune récolte trouvée.</td></tr>
+                                            <tr><td colspan="9" class="text-center">Aucune récolte trouvée.</td></tr>
                                         <?php endif; ?>
                                         <?php foreach ($recoltes as $r): ?>
                                             <tr>
@@ -106,6 +108,7 @@ require __DIR__ . '/partials/boHaut.php';
                                                 <td><?= e(date('d/m/Y', strtotime($r['datePlantation']))) ?></td>
                                                 <td><?= e(date('d/m/Y', strtotime($r['dateRecolte']))) ?></td>
                                                 <td class="text-right"><?= e(number_format((float) $r['quantiteKg'], 0, ',', ' ')) ?></td>
+                                                <td><?= $r['classe'] ? '<span class="badge badge-' . ($r['classe'] === 'EXTRA' ? 'warning' : ($r['classe'] === 'I' ? 'success' : 'secondary')) . '">' . e(ControleQualiteController::CLASSES[$r['classe']] ?? $r['classe']) . '</span>' : '<span class="text-gray-400">—</span>' ?></td>
                                                 <td class="text-center">
                                                     <?php if ($r['codeTracabilite']): ?>
                                                         <a href="../FrontOffice/tracabilite.php?code=<?= e($r['codeTracabilite']) ?>" target="_blank" title="Page publique"><i class="fas fa-qrcode"></i></a>

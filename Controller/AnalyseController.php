@@ -5,11 +5,14 @@
  *  - rendement (t/ha) par terrain
  *  - prévision de la prochaine récolte (régression linéaire)
  *  - comparaison anonyme avec les agriculteurs de la même région
- *  - rentabilité par terrain (prix du marché − dépenses)
+ *  - rentabilité par terrain : prix du marché × qualité × prime bio − dépenses − loyer ou part du propriétaire
  * Les calculs par mois sont faits en PHP (requêtes simples, compatibles MySQL/MariaDB).
  */
 require_once __DIR__ . '/../Config/config.php';
 require_once __DIR__ . '/CultureController.php';
+require_once __DIR__ . '/ContratFoncierController.php';
+require_once __DIR__ . '/CertificationBioController.php';
+require_once __DIR__ . '/ControleQualiteController.php';
 
 class AnalyseController
 {
@@ -228,14 +231,14 @@ class AnalyseController
             $monRendement = array_sum($valeurs) / count($valeurs);
             if (!empty($autres[$cle])) {
                 $reference = array_sum($autres[$cle]['valeurs']) / count($autres[$cle]['valeurs']);
-                $base = 'moyenne de ' . count($autres[$cle]['agriculteurs']) . ' agriculteur(s) de ' . $wilaya;
+                $base = ['moyenne de {n} agriculteur(s) de {w}', ['n' => count($autres[$cle]['agriculteurs']), 'w' => $wilaya]];
             } else {
                 $c = $this->cultureC->trouver($nom);
                 if (!$c) {
                     continue;
                 }
                 $reference = (float) $c['rendement'];
-                $base = 'moyenne nationale';
+                $base = ['moyenne nationale', []];
             }
             $ecart = $reference > 0 ? ($monRendement - $reference) / $reference * 100 : 0;
             $resultat[] = ['culture' => $nom, 'wilaya' => $wilaya, 'moi' => round($monRendement, 2),
@@ -263,15 +266,25 @@ class AnalyseController
 
         $resultat = [];
         $parCulture = [];
+        $contratC = new ContratFoncierController();
+        $bioC     = new CertificationBioController();
         foreach ($terrains as $t) {
+            // Qualité (classe, déchets) jointe à chaque récolte
             $r = config::getConnexion()->prepare(
-                "SELECT culture, quantiteKg FROM recolte WHERE idTerrain = :t AND quantiteKg IS NOT NULL");
+                "SELECT r.culture, r.quantiteKg, r.dateRecolte, q.classe, q.tauxDechets
+                 FROM recolte r LEFT JOIN controle_qualite q ON q.idRecolte = r.id
+                 WHERE r.idTerrain = :t AND r.quantiteKg IS NOT NULL");
             $r->execute(['t' => $t['id']]);
+            $certification = $bioC->getParTerrain((int) $t['id']);
             $revenu = 0.0;
             foreach ($r->fetchAll() as $rec) {
                 $c = $this->cultureC->trouver($rec['culture']);
                 if ($c) {
-                    $montant = (float) $rec['quantiteKg'] * (float) $c['prixKg'];
+                    // prix du marché × classe et part vendable × prime bio si le terrain était certifié
+                    $coef = ControleQualiteController::coefficient($rec['classe'] ? $rec : null)
+                          * (CertificationBioController::statutRecolte($certification, $rec['dateRecolte']) === 'CERTIFIE'
+                              ? CertificationBioController::PRIME_BIO : 1.0);
+                    $montant = (float) $rec['quantiteKg'] * (float) $c['prixKg'] * $coef;
                     $revenu += $montant;
                     $parCulture[$c['nom']]['revenu'] = ($parCulture[$c['nom']]['revenu'] ?? 0) + $montant;
                     $parCulture[$c['nom']]['ha'] = ($parCulture[$c['nom']]['ha'] ?? 0) + (float) $t['superficie'];
@@ -280,8 +293,11 @@ class AnalyseController
             $d = config::getConnexion()->prepare("SELECT COALESCE(SUM(montant), 0) FROM depense WHERE idTerrain = :t");
             $d->execute(['t' => $t['id']]);
             $depenses = (float) $d->fetchColumn();
+            // Loyer ou part du propriétaire (contrat foncier)
+            $foncier = ContratFoncierController::chargeFonciere($contratC->getParTerrain((int) $t['id']), $revenu);
             $resultat[] = ['id' => $t['id'], 'nom' => $t['nom'], 'revenu' => round($revenu, 3),
-                           'depenses' => round($depenses, 3), 'benefice' => round($revenu - $depenses, 3)];
+                           'depenses' => round($depenses, 3), 'foncier' => $foncier,
+                           'benefice' => round($revenu - $depenses - $foncier, 3)];
         }
 
         // Culture la plus rentable (revenu par hectare)
@@ -294,6 +310,7 @@ class AnalyseController
         }
         return ['terrains' => $resultat, 'meilleure' => $meilleure,
                 'totalRevenu' => array_sum(array_column($resultat, 'revenu')),
-                'totalDepenses' => array_sum(array_column($resultat, 'depenses'))];
+                'totalDepenses' => array_sum(array_column($resultat, 'depenses')),
+                'totalFoncier' => array_sum(array_column($resultat, 'foncier'))];
     }
 }

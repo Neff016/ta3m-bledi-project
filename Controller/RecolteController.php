@@ -24,9 +24,10 @@ class RecolteController
     // Front : toutes les récoltes des terrains d'un utilisateur
     public function listRecoltesByUser(int $idUtilisateur): array
     {
-        $sql = "SELECT r.*, t.nom AS terrainNom, t.localisation
+        $sql = "SELECT r.*, t.nom AS terrainNom, t.localisation, p.nom AS parcelleNom
                 FROM recolte r
                 JOIN terrain t ON t.id = r.idTerrain
+                LEFT JOIN parcelle p ON p.id = r.idParcelle
                 WHERE t.idUtilisateur = :idU
                 ORDER BY r.dateRecolte DESC, r.id DESC";
         $req = config::getConnexion()->prepare($sql);
@@ -37,7 +38,8 @@ class RecolteController
     // Les récoltes d'un terrain (page Détails terrain)
     public function listRecoltesByTerrain(int $idTerrain): array
     {
-        $sql = "SELECT * FROM recolte WHERE idTerrain = :idT ORDER BY dateRecolte DESC, id DESC";
+        $sql = "SELECT r.*, p.nom AS parcelleNom FROM recolte r LEFT JOIN parcelle p ON p.id = r.idParcelle
+                WHERE r.idTerrain = :idT ORDER BY r.dateRecolte DESC, r.id DESC";
         $req = config::getConnexion()->prepare($sql);
         $req->execute(['idT' => $idTerrain]);
         return $req->fetchAll();
@@ -76,7 +78,8 @@ class RecolteController
 
         $colonne = self::TRIS[$tri] ?? 'r.dateRecolte';
         $sens    = strtoupper($ordre) === 'ASC' ? 'ASC' : 'DESC';
-        $sql = "SELECT r.*, t.nom AS terrainNom, t.localisation, CONCAT(u.prenom, ' ', u.nom) AS proprietaire
+        $sql = "SELECT r.*, t.nom AS terrainNom, t.localisation, CONCAT(u.prenom, ' ', u.nom) AS proprietaire,
+                       (SELECT q.classe FROM controle_qualite q WHERE q.idRecolte = r.id) AS classe
                 $base ORDER BY $colonne $sens, r.id DESC";
         if ($parPage > 0) {
             $sql .= " LIMIT :limite OFFSET :decalage";
@@ -111,11 +114,13 @@ class RecolteController
         if (!preg_match('/^[A-F0-9]{12}$/', $code)) {
             return false;
         }
-        $sql = "SELECT r.id, r.culture, r.datePlantation, r.dateRecolte, r.quantite, r.unite, r.photo,
-                       t.id AS idTerrain, t.nom AS terrainNom, t.localisation, t.typeSol, t.superficie,
-                       t.latitude, t.longitude, t.polygone, u.prenom, u.nom
+        $sql = "SELECT r.id, r.culture, r.datePlantation, r.dateRecolte, r.quantite, r.unite, r.quantiteKg, r.photo,
+                       r.idTerrain, r.idParcelle, t.nom AS terrainNom, t.localisation, t.typeSol, t.superficie,
+                       t.latitude, t.longitude, t.polygone, u.prenom, u.nom,
+                       p.nom AS parcelleNom, p.surface AS parcelleSurface, p.polygone AS parcellePolygone
                 FROM recolte r
                 JOIN terrain t ON t.id = r.idTerrain
+                LEFT JOIN parcelle p ON p.id = r.idParcelle
                 JOIN utilisateur u ON u.id = t.idUtilisateur
                 WHERE r.codeTracabilite = :code AND u.statut = 'ACTIF'";
         $req = config::getConnexion()->prepare($sql);
@@ -130,9 +135,9 @@ class RecolteController
     public function addRecolte(Recolte $recolte): int
     {
         $sql = "INSERT INTO recolte (culture, datePlantation, dateRecolte, quantite, unite, idTerrain,
-                                     quantiteKg, codeTracabilite)
+                                     idParcelle, quantiteKg, codeTracabilite)
                 VALUES (:culture, :datePlantation, :dateRecolte, :quantite, :unite, :idT,
-                        :kg, :code)";
+                        :idP, :kg, :code)";
         $req = config::getConnexion()->prepare($sql);
         $req->execute($this->parametres($recolte) + ['code' => self::nouveauCode()]);
         return (int) config::getConnexion()->lastInsertId();
@@ -145,7 +150,7 @@ class RecolteController
         $sql = "UPDATE recolte
                 SET culture = :culture, datePlantation = :datePlantation, dateRecolte = :dateRecolte,
                     quantite = :quantite, unite = :unite, idTerrain = :idT,
-                    quantiteKg = :kg
+                    idParcelle = :idP, quantiteKg = :kg
                 WHERE id = :id";
         $req = config::getConnexion()->prepare($sql);
         $req->execute($this->parametres($recolte) + ['id' => $recolte->getId()]);
@@ -160,6 +165,7 @@ class RecolteController
             'quantite'       => $r->getQuantite(),
             'unite'          => $r->getUnite(),
             'idT'            => $r->getIdTerrain(),
+            'idP'            => $r->getIdParcelle(),
             'kg'             => $r->getQuantiteKg(),
         ];
     }
@@ -256,6 +262,16 @@ class RecolteController
             $erreurs['unite'] = 'Veuillez choisir une unité.';
         }
 
+        // Parcelle (facultative) : doit être une parcelle du terrain choisi
+        $idParcelle = trim((string) ($data['idParcelle'] ?? ''));
+        if ($idParcelle !== '' && !isset($erreurs['idTerrain'])) {
+            $req = config::getConnexion()->prepare("SELECT COUNT(*) FROM parcelle WHERE id = :p AND idTerrain = :t");
+            $req->execute(['p' => (int) $idParcelle, 't' => (int) $idTerrain]);
+            if (!ctype_digit($idParcelle) || $req->fetchColumn() == 0) {
+                $erreurs['idParcelle'] = 'Cette parcelle n’appartient pas au terrain choisi.';
+            }
+        }
+
         return $erreurs;
     }
 
@@ -271,13 +287,20 @@ class RecolteController
 
     // Rotation des cultures : même culture que la récolte précédente sur ce terrain ?
     // Retourne un message d'avertissement (pas une erreur) ou null
-    public function avertissementRotation(int $idTerrain, string $culture, string $datePlantation, ?int $exceptId = null): ?string
+    public function avertissementRotation(int $idTerrain, string $culture, string $datePlantation, ?int $exceptId = null,
+                                          ?int $idParcelle = null): ?string
     {
+        // Avec une parcelle : on compare avec la récolte précédente de CETTE parcelle
         $sql = "SELECT culture, dateRecolte FROM recolte
-                WHERE idTerrain = :t AND dateRecolte <= :d AND id <> :ex
+                WHERE idTerrain = :t AND dateRecolte <= :d AND id <> :ex"
+             . ($idParcelle ? " AND idParcelle = :p" : "") . "
                 ORDER BY dateRecolte DESC LIMIT 1";
+        $params = ['t' => $idTerrain, 'd' => $datePlantation, 'ex' => $exceptId ?? 0];
+        if ($idParcelle) {
+            $params['p'] = $idParcelle;
+        }
         $req = config::getConnexion()->prepare($sql);
-        $req->execute(['t' => $idTerrain, 'd' => $datePlantation, 'ex' => $exceptId ?? 0]);
+        $req->execute($params);
         $precedente = $req->fetch();
         if ($precedente && self::normaliser($precedente['culture']) === self::normaliser($culture)) {
             return 'Rotation des cultures : « ' . $precedente['culture'] . ' » a déjà été cultivé sur ce terrain '

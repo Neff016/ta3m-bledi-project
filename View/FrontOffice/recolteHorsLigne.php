@@ -19,6 +19,7 @@ $recolteC      = new RecolteController();
 
 $valeurs = [
     'idTerrain'      => $_POST['idTerrain'] ?? '',
+    'idParcelle'     => trim($_POST['idParcelle'] ?? ''),
     'culture'        => trim($_POST['culture'] ?? ''),
     'datePlantation' => $_POST['datePlantation'] ?? '',
     'dateRecolte'    => $_POST['dateRecolte'] ?? '',
@@ -38,7 +39,9 @@ $id = $recolteC->addRecolte(new Recolte(
     $valeurs['dateRecolte'],
     (float) str_replace(',', '.', $valeurs['quantite']),
     $valeurs['unite'],
-    (int) $valeurs['idTerrain']
+    (int) $valeurs['idTerrain'],
+    null,
+    $valeurs['idParcelle'] !== '' ? (int) $valeurs['idParcelle'] : null
 ));
 $badges = (new BadgeAutoController())->verifier($idUtilisateur);
 echo json_encode(['ok' => true, 'id' => $id, 'badges' => $badges]);

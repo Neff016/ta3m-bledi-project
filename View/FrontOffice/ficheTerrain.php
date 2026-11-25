@@ -1,13 +1,17 @@
 <?php
 /*
  * Fiche terrain imprimable (Imprimer → « Enregistrer en PDF »), sans bibliothèque
- * Infos, récoltes, rentabilité et dépenses.
+ * Infos, contrat foncier, certification bio, parcelles, récoltes (avec qualité), rentabilité et dépenses.
  */
 require_once __DIR__ . '/../../Controller/AuthGuard.php';
 require_once __DIR__ . '/../../Controller/TerrainController.php';
 require_once __DIR__ . '/../../Controller/RecolteController.php';
 require_once __DIR__ . '/../../Controller/DepenseController.php';
 require_once __DIR__ . '/../../Controller/AnalyseController.php';
+require_once __DIR__ . '/../../Controller/ContratFoncierController.php';
+require_once __DIR__ . '/../../Controller/CertificationBioController.php';
+require_once __DIR__ . '/../../Controller/ParcelleController.php';
+require_once __DIR__ . '/../../Controller/ControleQualiteController.php';
 require_once __DIR__ . '/../../Controller/Langue.php';
 
 $idUtilisateur = requireLogin();
@@ -23,6 +27,11 @@ $depenses = (new DepenseController())->listParTerrain($id);
 $rentab   = (new AnalyseController())->rentabilite($idUtilisateur, $id)['terrains'][0];
 $kg       = array_sum(array_map(fn($r) => (float) $r['quantiteKg'], $recoltes));
 [$lat, $lng, $exact] = TerrainController::position($terrain);
+$contrat   = (new ContratFoncierController())->getParTerrain($id);
+$certif    = (new CertificationBioController())->getParTerrain($id);
+$statutBio = CertificationBioController::statut($certif);
+$parcelles = (new ParcelleController())->listParTerrain($id);
+$qualites  = (new ControleQualiteController())->parRecolteDeUtilisateur($idUtilisateur);
 ?>
 <!DOCTYPE html>
 <html lang="<?= langue() ?>" dir="<?= estRtl() ? 'rtl' : 'ltr' ?>">
@@ -56,20 +65,40 @@ $kg       = array_sum(array_map(fn($r) => (float) $r['quantiteKg'], $recoltes));
         <tr><th><?= te('Production totale') ?></th><td><?= e(number_format($kg, 0, ',', ' ')) ?> kg</td>
             <th><?= te('Rendement') ?></th><td><?= e(number_format($kg / 1000 / max(0.01, (float) $terrain['superficie']), 2, ',', ' ')) ?> t/ha</td></tr>
         <tr><th><?= te("Chiffre d'affaires estimé") ?></th><td><?= e(number_format($rentab['revenu'], 3, ',', ' ')) ?> DT</td>
-            <th><?= te('Bénéfice') ?></th><td><strong><?= e(number_format($rentab['benefice'], 3, ',', ' ')) ?> DT</strong></td></tr>
+            <th><?= te('Loyer ou part du propriétaire') ?></th><td><?= e(number_format($rentab['foncier'], 3, ',', ' ')) ?> DT</td></tr>
+        <tr><th><?= te('Contrat foncier') ?></th>
+            <td><?php if ($contrat): ?><?= te(ContratFoncierController::TYPES[$contrat['type']]) ?><?= $contrat['proprietaire'] ? ' — ' . e($contrat['proprietaire']) : '' ?><?= $contrat['dateFin'] ? '<br>' . te('jusqu’au {d}', ['d' => date('d/m/Y', strtotime($contrat['dateFin']))]) : '' ?><?php else: ?>—<?php endif; ?></td>
+            <th><?= te('Certification bio') ?></th>
+            <td><?= $certif ? te(CertificationBioController::STATUTS[$statutBio]) . ' — ' . e($certif['organisme']) : '—' ?></td></tr>
+        <tr><th><?= te('Bénéfice') ?></th><td colspan="3"><strong><?= e(number_format($rentab['benefice'], 3, ',', ' ')) ?> DT</strong></td></tr>
       </table>
     </section>
+
+    <?php if ($parcelles): ?>
+    <section>
+      <h2><?= te('Parcelles') ?> (<?= count($parcelles) ?>)</h2>
+      <table>
+        <thead><tr><th><?= te('Parcelle') ?></th><th><?= te('Surface') ?></th><th><?= te('Récoltes') ?></th></tr></thead>
+        <tbody>
+          <?php foreach ($parcelles as $p): ?>
+            <tr><td><?= e($p['nom']) ?></td><td><?= e(CultureController::nombre((float) $p['surface'], 2)) ?> ha</td><td><?= e($p['nbRecoltes']) ?></td></tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </section>
+    <?php endif; ?>
 
     <section>
       <h2><?= te('Récoltes') ?> (<?= count($recoltes) ?>)</h2>
       <?php if (empty($recoltes)): ?><p class="vide"><?= te('Aucune récolte.') ?></p><?php else: ?>
       <table>
-        <thead><tr><th><?= te('Culture') ?></th><th><?= te('Plantation') ?></th><th><?= te('Récolte') ?></th><th><?= te('Quantité') ?></th><th><?= te('Code traçabilité') ?></th></tr></thead>
+        <thead><tr><th><?= te('Culture') ?></th><th><?= te('Plantation') ?></th><th><?= te('Récolte') ?></th><th><?= te('Quantité') ?></th><th><?= te('Qualité') ?></th><th><?= te('Code traçabilité') ?></th></tr></thead>
         <tbody>
           <?php foreach ($recoltes as $r): ?>
             <tr><td><?= e($r['culture']) ?></td>
                 <td><?= e(date('d/m/Y', strtotime($r['datePlantation']))) ?></td><td><?= e(date('d/m/Y', strtotime($r['dateRecolte']))) ?></td>
-                <td><?= e(RecolteController::nombreCourt((float) $r['quantite']) . ' ' . t($r['unite'])) ?></td><td class="code"><?= e($r['codeTracabilite']) ?></td></tr>
+                <td><?= e(RecolteController::nombreCourt((float) $r['quantite']) . ' ' . t($r['unite'])) ?></td>
+                <td><?= isset($qualites[(int) $r['id']]) ? te(ControleQualiteController::CLASSES[$qualites[(int) $r['id']]['classe']]) : '—' ?><?= CertificationBioController::statutRecolte($certif, $r['dateRecolte']) === 'CERTIFIE' ? ' · ' . te('Bio') : '' ?></td><td class="code"><?= e($r['codeTracabilite']) ?></td></tr>
           <?php endforeach; ?>
         </tbody>
       </table>

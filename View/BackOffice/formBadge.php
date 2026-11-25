@@ -163,6 +163,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <span>Cultures et prix</span></a>
             </li>
 
+            <li class="nav-item">
+                <a class="nav-link" href="foncierBio.php">
+                    <i class="fas fa-fw fa-file-contract"></i>
+                    <span>Foncier et bio</span></a>
+            </li>
+
             <hr class="sidebar-divider">
 
             <li class="nav-item">

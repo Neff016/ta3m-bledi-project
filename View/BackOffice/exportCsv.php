@@ -17,18 +17,18 @@ if ($type === 'terrains') {
     $lignes = (new TerrainController())->listAllTerrains(
         ['q' => trim($_GET['q'] ?? ''), 'wilaya' => $_GET['wilaya'] ?? '', 'sol' => $_GET['sol'] ?? ''],
         isset(TerrainController::TRIS[$tri]) ? $tri : 'id', $ordre)['lignes'];
-    $entetes = ['ID', 'Nom', 'Propriétaire', 'Wilaya', 'Superficie (ha)', 'Type de sol', 'Nb récoltes', 'Latitude', 'Longitude'];
+    $entetes = ['ID', 'Nom', 'Propriétaire', 'Wilaya', 'Superficie (ha)', 'Type de sol', 'Nb récoltes', 'Nb parcelles', 'Contrat foncier', 'Latitude', 'Longitude'];
     $valeurs = fn($t) => [$t['id'], $t['nom'], $t['proprietaire'], $t['localisation'], $t['superficie'], $t['typeSol'],
-                          $t['nbRecoltes'], $t['latitude'], $t['longitude']];
+                          $t['nbRecoltes'], $t['nbParcelles'], $t['typeContrat'] ?? '', $t['latitude'], $t['longitude']];
 } else {
     $lignes = (new RecolteController())->listAllRecoltes(
         ['q' => trim($_GET['q'] ?? ''), 'wilaya' => $_GET['wilaya'] ?? '',
          'du' => $_GET['du'] ?? '', 'au' => $_GET['au'] ?? ''],
         isset(RecolteController::TRIS[$tri]) ? $tri : 'dateRecolte', $ordre)['lignes'];
-    $entetes = ['ID', 'Culture', 'Terrain', 'Wilaya', 'Agriculteur', 'Plantation', 'Récolte', 'Quantité', 'Unité', 'Quantité (kg)', 'Code traçabilité'];
+    $entetes = ['ID', 'Culture', 'Terrain', 'Wilaya', 'Agriculteur', 'Plantation', 'Récolte', 'Quantité', 'Unité', 'Quantité (kg)', 'Classe qualité', 'Code traçabilité'];
     $valeurs = fn($r) => [$r['id'], $r['culture'], $r['terrainNom'], $r['localisation'], $r['proprietaire'],
                           $r['datePlantation'], $r['dateRecolte'],
-                          $r['quantite'], $r['unite'], $r['quantiteKg'], $r['codeTracabilite']];
+                          $r['quantite'], $r['unite'], $r['quantiteKg'], $r['classe'] ?? '', $r['codeTracabilite']];
 }
 
 // Protection contre l'injection de formules dans Excel (=, +, -, @ en début de cellule)

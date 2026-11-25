@@ -40,3 +40,8 @@ body { font-family: "Open Sans", Arial, sans-serif; color: #1e2b24; background: 
   .fiche section { break-inside: avoid; }
   @page { size: A4; margin: 14mm; }
 }
+
+/* Mentions qualité / bio sur l'étiquette */
+.etiquette .mentions { margin: 2px 0 6px; font-size: .8rem; display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.etiquette .mentions span { border: 1px solid #2f5d3a; border-radius: 10px; padding: 1px 8px; }
+.etiquette .mentions .bio { background: #2f5d3a; color: #fff; }

@@ -8,6 +8,9 @@ require_once __DIR__ . '/../../Controller/AuthGuard.php';
 require_once __DIR__ . '/../../Controller/RecolteController.php';
 require_once __DIR__ . '/../../Controller/TerrainController.php';
 require_once __DIR__ . '/../../Controller/CultureController.php';
+require_once __DIR__ . '/../../Controller/ControleQualiteController.php';
+require_once __DIR__ . '/../../Controller/CertificationBioController.php';
+require_once __DIR__ . '/../../Controller/EnvironnementController.php';
 require_once __DIR__ . '/../../Controller/Langue.php';
 
 $code    = strtoupper(trim((string) ($_GET['code'] ?? '')));
@@ -17,7 +20,12 @@ $culture = null;
 if ($produit) {
     $culture = (new CultureController())->trouver($produit['culture']);
     [$lat, $lng, $exact] = TerrainController::position($produit);
-    $parcelle = TerrainController::lirePolygone($produit['polygone']);
+    // La parcelle précise si elle est dessinée, sinon le contour du terrain
+    $parcelle = TerrainController::lirePolygone($produit['parcellePolygone']) ?? TerrainController::lirePolygone($produit['polygone']);
+    $qualite  = (new ControleQualiteController())->getParRecolte((int) $produit['id']);
+    $certif   = (new CertificationBioController())->getParTerrain((int) $produit['idTerrain']);
+    $bio      = CertificationBioController::statutRecolte($certif, $produit['dateRecolte']);
+    $bilan    = (new EnvironnementController())->bilan($produit);
     $duree    = (int) round((strtotime($produit['dateRecolte']) - strtotime($produit['datePlantation'])) / 86400);
 }
 ?>
@@ -58,10 +66,19 @@ if ($produit) {
         <div class="p-4">
           <p class="tb-public-sur-titre"><?= te('De la ferme à la table') ?></p>
           <h1><?= e($produit['culture']) ?></h1>
-          <?php if ($culture): ?><span class="badge text-bg-success"><?= te($culture['categorie']) ?></span><?php endif; ?>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <?php if ($culture): ?><span class="badge text-bg-success"><?= te($culture['categorie']) ?></span><?php endif; ?>
+            <?php if ($qualite): ?><span class="tb-classe tb-classe-<?= strtolower(e($qualite['classe'])) ?>"><?= te(ControleQualiteController::CLASSES[$qualite['classe']]) ?></span><?php endif; ?>
+            <?php if ($bio === 'CERTIFIE'): ?><span class="tb-classe tb-classe-bio"><i class="bi bi-flower1"></i> <?= te('Agriculture biologique') ?></span>
+            <?php elseif ($bio === 'CONVERSION'): ?><span class="tb-classe tb-classe-conversion"><i class="bi bi-hourglass-split"></i> <?= te('En conversion vers l’agriculture biologique') ?></span><?php endif; ?>
+            <?php if ($bilan['note']): ?><span class="tb-note-env tb-note-<?= strtolower($bilan['note']) ?>" title="<?= te('Bilan environnemental') ?>"><?= e($bilan['note']) ?></span><?php endif; ?>
+          </div>
           <ul class="tb-public-infos">
             <li><i class="bi bi-person"></i> <?= te('Cultivé par {nom}', ['nom' => $produit['prenom'] . ' ' . mb_substr($produit['nom'], 0, 1) . '.']) ?></li>
-            <li><i class="bi bi-geo-alt"></i> <?= e($produit['terrainNom']) ?> — <?= e($produit['localisation']) ?>, <?= te('Tunisie') ?></li>
+            <li><i class="bi bi-geo-alt"></i> <?= e($produit['terrainNom']) ?><?= $produit['parcelleNom'] ? ' (' . e($produit['parcelleNom']) . ')' : '' ?> — <?= e($produit['localisation']) ?>, <?= te('Tunisie') ?></li>
+            <?php if ($bio && $certif): ?>
+              <li><i class="bi bi-patch-check"></i> <?= te('Certifié par {o}', ['o' => $certif['organisme']]) ?><?= $certif['numeroCertificat'] ? ' · ' . e($certif['numeroCertificat']) : '' ?></li>
+            <?php endif; ?>
             <li><i class="bi bi-layers"></i> <?= te('Sol {sol}', ['sol' => mb_strtolower(t($produit['typeSol']))]) ?></li>
             <li><i class="bi bi-upc"></i> <?= te('Lot n° {code}', ['code' => $code]) ?></li>
           </ul>
@@ -78,6 +95,11 @@ if ($produit) {
               <li><span class="tb-frise-icone"><i class="bi bi-basket"></i></span>
                 <div class="tb-frise-contenu"><strong><?= te('Récolte') ?></strong><br><?= e(date('d/m/Y', strtotime($produit['dateRecolte']))) ?>
                   <small class="text-muted">· <?= te('{n} jours de culture', ['n' => $duree]) ?></small></div></li>
+              <?php if ($qualite): ?>
+                <li><span class="tb-frise-icone"><i class="bi bi-award"></i></span>
+                  <div class="tb-frise-contenu"><strong><?= te('Contrôle qualité') ?></strong><br><?= e(date('d/m/Y', strtotime($qualite['dateControle']))) ?>
+                    <small class="d-block"><?= implode(' · ', array_map(fn($m) => te($m[0], $m[1]), ControleQualiteController::resume($qualite))) ?></small></div></li>
+              <?php endif; ?>
             </ul>
           </div>
         </div>
@@ -90,6 +112,26 @@ if ($produit) {
           </div>
         </div>
       </div>
+
+      <?php if ($bilan['note']): ?>
+        <div class="tb-panneau mt-4">
+          <h2 class="tb-titre-panneau"><i class="bi bi-globe2"></i> <?= te('Impact environnemental') ?></h2>
+          <div class="d-flex flex-wrap gap-4 align-items-center">
+            <div class="d-flex gap-1" aria-label="<?= te('Note {n} sur une échelle de A à E', ['n' => $bilan['note']]) ?>">
+              <?php foreach (EnvironnementController::NOTES as $n): ?>
+                <span class="tb-note-env tb-note-<?= strtolower($n) ?> <?= $n === $bilan['note'] ? 'tb-note-grande' : 'tb-note-eteinte' ?>"><?= $n ?></span>
+              <?php endforeach; ?>
+            </div>
+            <?php if ($bilan['eau']): ?>
+              <div><strong><?= e(number_format($bilan['eau']['litresParKg'], 0, ',', ' ')) ?> L</strong> <span class="text-muted"><?= te('d’eau par kg') ?></span></div>
+            <?php endif; ?>
+            <?php if ($bilan['carbone']): ?>
+              <div><strong><?= e(number_format($bilan['carbone']['parKg'], 2, ',', ' ')) ?> kg</strong> <span class="text-muted"><?= te('de CO₂e par kg') ?></span></div>
+            <?php endif; ?>
+          </div>
+          <p class="small text-muted mt-2 mb-0"><?= te('Estimation calculée par Taam Bledi à partir de la durée de culture, du rendement et des dépenses de l’agriculteur.') ?></p>
+        </div>
+      <?php endif; ?>
 
       <?php if ($culture): ?>
         <div class="tb-panneau mt-4">

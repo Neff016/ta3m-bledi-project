@@ -29,6 +29,7 @@ class BadgeAutoController
             'Comptable rigoureux' => $compter("SELECT COUNT(*) FROM depense d JOIN terrain t ON t.id = d.idTerrain
                                                WHERE t.idUtilisateur = :u") >= 10,
             'Producteur traçable' => $etiquetteImprimee,
+            'Producteur bio'      => $this->aUnTerrainBio($idUtilisateur),
         ];
 
         $gagnes = [];
@@ -56,6 +57,18 @@ class BadgeAutoController
             }
         }
         return $gagnes;
+    }
+
+    // Au moins un terrain certifié bio aujourd'hui (conversion terminée, certificat valide)
+    private function aUnTerrainBio(int $idUtilisateur): bool
+    {
+        require_once __DIR__ . '/CertificationBioController.php';
+        foreach ((new CertificationBioController())->parTerrainDeUtilisateur($idUtilisateur) as $b) {
+            if (CertificationBioController::statut($b) === 'CERTIFIE') {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Message à afficher : « Nouveau badge : Première récolte (+10 pts) »

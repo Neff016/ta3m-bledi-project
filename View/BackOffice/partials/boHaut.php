@@ -51,6 +51,7 @@ $lienSidebar = function (string $fichier, string $icone, string $texte) use ($bo
             <?= $lienSidebar('listeRecoltes.php', 'fa-seedling', 'Récoltes') ?>
             <?= $lienSidebar('carteTerrains.php', 'fa-globe-africa', 'Carte des terrains') ?>
             <?= $lienSidebar('listeCultures.php', 'fa-tags', 'Cultures et prix') ?>
+            <?= $lienSidebar('foncierBio.php', 'fa-file-contract', 'Foncier et bio') ?>
 
             <hr class="sidebar-divider">
             <li class="nav-item"><a class="nav-link" href="../FrontOffice/index.html"><i class="fas fa-fw fa-globe"></i> <span>Voir le site</span></a></li>

@@ -56,6 +56,7 @@ ta3m-bledi-project/
    1. `SQL/ta3m_bledi_utilisateurs_badges.sql`
    2. `SQL/ta3m_bledi_terrains_recoltes.sql`
    3. `SQL/ta3m_bledi_terrains_avance.sql` (carte, catalogue des cultures, dépenses, QR, badges automatiques)
+   4. `SQL/ta3m_bledi_terrains_extensions.sql` (contrat foncier, certification bio, parcelles, contrôle qualité)
 
    Base déjà créée avant la mise à jour sécurité ? Exécuter aussi `SQL/mise-a-jour-securite.sql`.
 
@@ -109,15 +110,24 @@ Si le dossier du projet n'a pas le nom `ta3m-bledi-project`, modifier aussi `LOG
 | Prévision de récolte | tableau de bord | régression linéaire (moindres carrés) par culture et par terrain |
 | Rentabilité | onglet « Rentabilité » | dépenses saisies − (quantités × prix du marché géré par l'admin) |
 | Comparaison régionale | tableau de bord | rendement comparé aux autres agriculteurs de la wilaya (anonyme) |
+| Contrat foncier | onglet « Contrat et bio » | propriété, location, association (khammès) ou métayage ; le loyer ou la part du propriétaire est déduit de la rentabilité ; alerte 30 jours avant la fin du contrat |
+| Certification bio | onglet « Contrat et bio » | période de conversion (24 ou 36 mois), organisme, expiration ; une récolte est « bio » seulement si le terrain était certifié à sa date ; badge 🌿 sur le QR, prime +25 % |
+| Parcelles et rotation | onglet « Parcelles », `parcelle.php` | découpage du terrain (contour dessiné sur la carte) ; plan de rotation sur 4 ans : céréale → légumineuse → légume → jachère, alerte « même famille 2 ans de suite » |
+| Contrôle qualité | `qualiteRecolte.php` | classe Extra / I / II (prix × 1,2 / 1 / 0,8), calibre, déchets, humidité (céréales), °Brix (fruits) ; affiché sur la page du QR et l'étiquette |
+| Bilan environnemental | `bilanEnvironnemental.php` | empreinte eau (L/kg, FAO-56) et carbone (kg CO₂e/kg, d'après les dépenses), note de A à E par récolte |
 | Fiche PDF | `ficheTerrain.php` | impression du navigateur → « Enregistrer en PDF » |
-| Badges automatiques | — | Premier terrain, Première récolte, Une tonne récoltée, Comptable rigoureux (10 dépenses), Producteur traçable |
+| Badges automatiques | — | Premier terrain, Première récolte, Une tonne récoltée, Comptable rigoureux (10 dépenses), Producteur traçable, Producteur bio |
 | Hors ligne (PWA) | `sw.js`, `manifest.webmanifest` | installable ; une récolte saisie sans Internet est gardée (IndexedDB) puis envoyée au retour du réseau |
 | Arabe / français | bouton « ع » du menu | traduction (`View/FrontOffice/lang/ar.php`) et mise en page de droite à gauche |
-| Back Office | `listeTerrains.php`, `listeRecoltes.php`, `carteTerrains.php`, `listeCultures.php` | filtres, tri par colonne, pagination, export CSV, carte de tous les terrains, prix du marché |
+| Back Office | `listeTerrains.php`, `listeRecoltes.php`, `carteTerrains.php`, `listeCultures.php`, `foncierBio.php` | filtres, tri par colonne, pagination, export CSV, carte de tous les terrains, prix du marché, contrats fonciers et certifications bio |
 
 **Clé d'API (facultative)** : copier `Config/api.example.php` en `Config/api.php` et coller la clé Agromonitoring
 (https://home.agromonitoring.com/). Sans clé, l'onglet Satellite affiche un message ; tout le reste fonctionne.
 `Config/api.php` est dans `.gitignore`.
+
+**Diagramme de classes du module** : Utilisateur 1 → * Terrain ; Terrain 1 → * Recolte, 1 → * Parcelle, 1 → 0..1 ContratFoncier,
+1 → 0..1 CertificationBio, 1 → * Depense ; Parcelle 1 → * Recolte ; Recolte 1 → 0..1 ControleQualite.
+Le bilan environnemental est calculé (classe EnvironnementController, sans table).
 
 **Partage avec le module « Plantation et suivi »** : ici, une récolte est toujours **terminée** (quantité obligatoire).
 Les plantations en cours, leur suivi (arrosage, observations) et le diagnostic des maladies sont dans le module

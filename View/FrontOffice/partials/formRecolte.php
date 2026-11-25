@@ -1,7 +1,7 @@
 <?php
 /*
  * Formulaire Récolte (utilisé par ajouterRecolte.php ET modifierRecolte.php)
- * Variables attendues : $valeurs, $erreurs, $texteBouton, $terrains (terrains de l'utilisateur),
+ * Variables attendues : $valeurs, $erreurs, $texteBouton, $terrains (terrains de l'utilisateur), $parcelles,
  *                       $nomsCultures (autocomplétion), $photoActuelle (ou null), $avertissement (ou null)
  * ⚠️ Pas de validation HTML5 (required…) : contrôle en JS + PHP.
  */
@@ -35,7 +35,7 @@
 
   <div class="row">
 
-    <div class="col-md-6 mb-4">
+    <div class="col-md-4 mb-4">
       <label for="idTerrain" class="form-label"><?= te('Terrain') ?></label>
       <select class="form-select <?= isset($erreurs['idTerrain']) ? 'is-invalid' : '' ?>" id="idTerrain" name="idTerrain">
         <option value=""><?= te('-- Choisir un terrain --') ?></option>
@@ -49,7 +49,22 @@
       <div class="erreur" id="erreur-idTerrain"><?= te($erreurs['idTerrain'] ?? '') ?></div>
     </div>
 
-    <div class="col-md-6 mb-4">
+    <div class="col-md-4 mb-4">
+      <label for="idParcelle" class="form-label"><?= te('Parcelle (facultatif)') ?></label>
+      <select class="form-select <?= isset($erreurs['idParcelle']) ? 'is-invalid' : '' ?>" id="idParcelle" name="idParcelle">
+        <option value=""><?= te('-- Tout le terrain --') ?></option>
+        <?php foreach ($parcelles as $p): ?>
+          <option value="<?= e($p['id']) ?>" data-terrain="<?= e($p['idTerrain']) ?>"
+                  <?= (string) $valeurs['idParcelle'] === (string) $p['id'] ? 'selected' : '' ?>>
+            <?= e($p['nom']) ?> (<?= e(CultureController::nombre((float) $p['surface'], 2)) ?> ha)
+          </option>
+        <?php endforeach; ?>
+      </select>
+      <small class="text-muted"><?= te('Sert au plan de rotation des cultures.') ?></small>
+      <div class="erreur" id="erreur-idParcelle"><?= te($erreurs['idParcelle'] ?? '') ?></div>
+    </div>
+
+    <div class="col-md-4 mb-4">
       <label for="culture" class="form-label"><?= te('Culture') ?></label>
       <input type="text" class="form-control <?= isset($erreurs['culture']) ? 'is-invalid' : '' ?>"
              id="culture" name="culture" value="<?= e($valeurs['culture']) ?>" list="listeCultures"

@@ -12,6 +12,7 @@ $menuModule = [
     'mesRecoltes.php'     => ['bi-basket', 'Mes récoltes'],
     'recommandation.php'  => ['bi-stars', 'Recommandation IA'],
     'consommationEau.php' => ['bi-droplet', "Consommation d'eau"],
+    'bilanEnvironnemental.php' => ['bi-globe2', 'Bilan environnemental'],
 ];
 $pageActive ??= basename($_SERVER['SCRIPT_NAME']);
 $retourLangue = rawurlencode(basename($_SERVER['SCRIPT_NAME']) . (empty($_SERVER['QUERY_STRING']) ? '' : '?' . $_SERVER['QUERY_STRING']));

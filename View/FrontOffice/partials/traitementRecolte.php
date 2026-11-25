@@ -6,9 +6,13 @@
  */
 require_once __DIR__ . '/../../../Controller/UploadHelper.php';
 require_once __DIR__ . '/../../../Controller/BadgeAutoController.php';
+require_once __DIR__ . '/../../../Controller/ParcelleController.php';
+
+$parcelles = (new ParcelleController())->listParUtilisateur($idUtilisateur);   // liste filtrée par terrain en JS
 
 $valeurs = [
     'idTerrain'      => $recolte['idTerrain'] ?? ($_GET['idTerrain'] ?? ''),   // pré-sélection depuis "Détails terrain"
+    'idParcelle'     => $recolte['idParcelle'] ?? ($_GET['idParcelle'] ?? ''),
     'culture'        => $recolte['culture'] ?? mb_substr(trim((string) ($_GET['culture'] ?? '')), 0, 100),
     'datePlantation' => $recolte['datePlantation'] ?? '',
     'dateRecolte'    => $recolte['dateRecolte'] ?? '',
@@ -21,6 +25,7 @@ $avertissement = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $valeurs = [
         'idTerrain'      => $_POST['idTerrain'] ?? '',
+        'idParcelle'     => trim($_POST['idParcelle'] ?? ''),
         'culture'        => trim($_POST['culture'] ?? ''),
         'datePlantation' => $_POST['datePlantation'] ?? '',
         'dateRecolte'    => $_POST['dateRecolte'] ?? '',
@@ -33,10 +38,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Rotation des cultures : simple avertissement, l'utilisateur peut confirmer
     $cultureChangee = !$recolte || RecolteController::normaliser($recolte['culture']) !== RecolteController::normaliser($valeurs['culture'])
-                      || (int) $recolte['idTerrain'] !== (int) $valeurs['idTerrain'];
+                      || (int) $recolte['idTerrain'] !== (int) $valeurs['idTerrain']
+                      || (int) ($recolte['idParcelle'] ?? 0) !== (int) $valeurs['idParcelle'];
     if (empty($erreurs) && $cultureChangee && empty($_POST['confirmerRotation'])) {
         $avertissement = $recolteC->avertissementRotation((int) $valeurs['idTerrain'], $valeurs['culture'],
-                                                          $valeurs['datePlantation'], $recolte ? (int) $recolte['id'] : null);
+                                                          $valeurs['datePlantation'], $recolte ? (int) $recolte['id'] : null,
+                                                          $valeurs['idParcelle'] !== '' ? (int) $valeurs['idParcelle'] : null);
     }
 
     // Photo (facultative)
@@ -58,7 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             (float) str_replace(',', '.', $valeurs['quantite']),
             $valeurs['unite'],
             (int) $valeurs['idTerrain'],
-            $recolte['id'] ?? null
+            $recolte['id'] ?? null,
+            $valeurs['idParcelle'] !== '' ? (int) $valeurs['idParcelle'] : null
         );
         if ($recolte) {
             $recolteC->updateRecolte($objet);

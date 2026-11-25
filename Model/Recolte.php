@@ -14,6 +14,7 @@ class Recolte
     private float $quantite;
     private string $unite;
     private int $idTerrain;
+    private ?int $idParcelle;         // parcelle du terrain (facultatif)
 
     public function __construct(
         string $culture,
@@ -22,7 +23,8 @@ class Recolte
         float $quantite,
         string $unite,
         int $idTerrain,
-        ?int $id = null
+        ?int $id = null,
+        ?int $idParcelle = null
     ) {
         $this->id             = $id;
         $this->culture        = $culture;
@@ -31,6 +33,7 @@ class Recolte
         $this->quantite       = $quantite;
         $this->unite          = $unite;
         $this->idTerrain      = $idTerrain;
+        $this->idParcelle     = $idParcelle;
     }
 
     // Quantité convertie en kilogrammes (pour additionner et comparer)
@@ -48,6 +51,7 @@ class Recolte
     public function getQuantite(): float        { return $this->quantite; }
     public function getUnite(): string          { return $this->unite; }
     public function getIdTerrain(): int         { return $this->idTerrain; }
+    public function getIdParcelle(): ?int       { return $this->idParcelle; }
 
     // ----- Setters -----
     public function setId(?int $id): void                  { $this->id = $id; }
@@ -57,4 +61,5 @@ class Recolte
     public function setQuantite(float $quantite): void     { $this->quantite = $quantite; }
     public function setUnite(string $unite): void          { $this->unite = $unite; }
     public function setIdTerrain(int $id): void            { $this->idTerrain = $id; }
+    public function setIdParcelle(?int $id): void          { $this->idParcelle = $id; }
 }

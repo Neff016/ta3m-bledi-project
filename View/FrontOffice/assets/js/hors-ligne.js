@@ -113,7 +113,7 @@
       if (form.id !== 'formRecolte' || navigator.onLine || !/ajouterRecolte\.php/.test(location.pathname)) return;
       ev.preventDefault();
       const champs = {};
-      ['idTerrain', 'culture', 'datePlantation', 'dateRecolte', 'quantite', 'unite'].forEach(function (k) {
+      ['idTerrain', 'idParcelle', 'culture', 'datePlantation', 'dateRecolte', 'quantite', 'unite'].forEach(function (k) {
         champs[k] = form.elements[k] ? form.elements[k].value : '';
       });
       const jeton = form.elements.csrf_token ? form.elements.csrf_token.value : '';

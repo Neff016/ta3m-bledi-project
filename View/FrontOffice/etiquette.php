@@ -7,6 +7,8 @@
 require_once __DIR__ . '/../../Controller/AuthGuard.php';
 require_once __DIR__ . '/../../Controller/RecolteController.php';
 require_once __DIR__ . '/../../Controller/BadgeAutoController.php';
+require_once __DIR__ . '/../../Controller/ControleQualiteController.php';
+require_once __DIR__ . '/../../Controller/CertificationBioController.php';
 require_once __DIR__ . '/../../Controller/Langue.php';
 
 $idUtilisateur = requireLogin();
@@ -26,6 +28,8 @@ $https = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
 $lien  = ($https ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . dirname($_SERVER['SCRIPT_NAME'])
        . '/tracabilite.php?code=' . $recolte['codeTracabilite'];
 $nombre = max(1, min(8, (int) ($_GET['n'] ?? 2)));
+$qualite = (new ControleQualiteController())->getParRecolte($id);
+$bio     = CertificationBioController::statutRecolte((new CertificationBioController())->getParTerrain((int) $recolte['idTerrain']), $recolte['dateRecolte']);
 ?>
 <!DOCTYPE html>
 <html lang="<?= langue() ?>" dir="<?= estRtl() ? 'rtl' : 'ltr' ?>">
@@ -59,6 +63,13 @@ $nombre = max(1, min(8, (int) ($_GET['n'] ?? 2)));
       <div class="etiquette">
         <p class="marque">Taam Bledi</p>
         <p class="produit"><?= e($recolte['culture']) ?></p>
+        <?php if ($qualite || $bio): ?>
+          <p class="mentions">
+            <?php if ($qualite): ?><span><?= te(ControleQualiteController::CLASSES[$qualite['classe']]) ?><?= $qualite['calibre'] ? ' · ' . e($qualite['calibre']) : '' ?></span><?php endif; ?>
+            <?php if ($bio === 'CERTIFIE'): ?><span class="bio">🌿 <?= te('Bio') ?></span>
+            <?php elseif ($bio === 'CONVERSION'): ?><span><?= te('En conversion bio') ?></span><?php endif; ?>
+          </p>
+        <?php endif; ?>
         <p class="origine"><i class="bi bi-geo-alt"></i> <?= e($recolte['localisation']) ?> · <?= te('récolté le {date}', ['date' => date('d/m/Y', strtotime($recolte['dateRecolte']))]) ?></p>
         <div class="qr" data-lien="<?= e($lien) ?>"></div>
         <p class="code"><?= e($recolte['codeTracabilite']) ?></p>

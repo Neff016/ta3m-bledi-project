@@ -83,7 +83,9 @@ class TerrainController
         $colonne = self::TRIS[$tri] ?? 't.id';
         $sens    = strtoupper($ordre) === 'ASC' ? 'ASC' : 'DESC';
         $sql = "SELECT t.*, CONCAT(u.prenom, ' ', u.nom) AS proprietaire,
-                       (SELECT COUNT(*) FROM recolte r WHERE r.idTerrain = t.id) AS nbRecoltes
+                       (SELECT COUNT(*) FROM recolte r WHERE r.idTerrain = t.id) AS nbRecoltes,
+                       (SELECT COUNT(*) FROM parcelle p WHERE p.idTerrain = t.id) AS nbParcelles,
+                       (SELECT c.type FROM contrat_foncier c WHERE c.idTerrain = t.id) AS typeContrat
                 $base ORDER BY $colonne $sens, t.id DESC";
         if ($parPage > 0) {
             $sql .= " LIMIT :limite OFFSET :decalage";
