@@ -23,11 +23,15 @@ CREATE TABLE IF NOT EXISTS utilisateur (
 -- Colonnes du module (ajoutées seulement si elles n'existent pas encore)
 ALTER TABLE utilisateur
   ADD COLUMN IF NOT EXISTS telephone VARCHAR(8) NULL,
-  ADD COLUMN IF NOT EXISTS statut VARCHAR(10) NOT NULL DEFAULT 'ACTIF',
+  ADD COLUMN IF NOT EXISTS statut VARCHAR(10) NOT NULL DEFAULT 'ACTIF',   -- ACTIF / BLOQUE / SUPPRIME
   ADD COLUMN IF NOT EXISTS photo VARCHAR(100) NULL,
   ADD COLUMN IF NOT EXISTS dateInscription DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   ADD COLUMN IF NOT EXISTS resetToken VARCHAR(64) NULL,
-  ADD COLUMN IF NOT EXISTS resetExpiration DATETIME NULL;
+  ADD COLUMN IF NOT EXISTS resetExpiration DATETIME NULL,
+  ADD COLUMN IF NOT EXISTS resetTentatives INT NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS sessionToken VARCHAR(64) NULL,
+  ADD COLUMN IF NOT EXISTS derniereConnexion DATETIME NULL,
+  ADD COLUMN IF NOT EXISTS dateSuppression DATETIME NULL;
 
 -- Comptes de test (mots de passe hachés avec password_hash)
 --   admin@taambledi.tn  /  Admin@2026   (ADMIN)
@@ -69,6 +73,22 @@ CREATE TABLE IF NOT EXISTS utilisateur_badge (
   CONSTRAINT uq_utilisateur_badge UNIQUE (idUtilisateur, idBadge),
   CONSTRAINT fk_ub_utilisateur FOREIGN KEY (idUtilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE,
   CONSTRAINT fk_ub_badge FOREIGN KEY (idBadge) REFERENCES badge(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- ---------------------------------------------------------
+-- Table passkey : clés d'accès (Face ID, empreinte, Windows Hello)
+-- On garde seulement la clé PUBLIQUE : l'empreinte ne quitte jamais l'appareil.
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS passkey (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  idUtilisateur INT NOT NULL,
+  credentialId VARCHAR(255) NOT NULL UNIQUE,
+  clePublique TEXT NOT NULL,
+  compteur INT UNSIGNED NOT NULL DEFAULT 0,
+  nom VARCHAR(50) NOT NULL,
+  dateCreation DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  derniereUtilisation DATETIME NULL,
+  CONSTRAINT fk_passkey_utilisateur FOREIGN KEY (idUtilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------

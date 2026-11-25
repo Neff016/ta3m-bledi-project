@@ -1,2 +1,6 @@
 # Images envoyées par les utilisateurs (photos de profil, icônes de badges)
 View/FrontOffice/assets/img/uploads/
+
+# Identifiants Gmail (secrets) : chacun crée son propre Config/mail.php
+Config/mail.php
+Config/api.php

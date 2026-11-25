@@ -9,7 +9,13 @@ require_once __DIR__ . '/TerrainController.php';
 
 class RecolteController
 {
-    public const UNITES = ['kg', 'quintal', 'tonne'];
+    public const UNITES   = ['kg', 'quintal', 'tonne'];
+    public const FACTEURS = ['kg' => 1, 'quintal' => 100, 'tonne' => 1000];   // conversion en kg
+
+    public const TRIS = [
+        'dateRecolte' => 'r.dateRecolte', 'culture' => 'r.culture', 'terrain' => 'terrainNom',
+        'quantiteKg' => 'r.quantiteKg', 'proprietaire' => 'proprietaire',
+    ];
 
     /* =========================================================
      *  LECTURE
@@ -18,11 +24,11 @@ class RecolteController
     // Front : toutes les récoltes des terrains d'un utilisateur
     public function listRecoltesByUser(int $idUtilisateur): array
     {
-        $sql = "SELECT r.*, t.nom AS terrainNom
+        $sql = "SELECT r.*, t.nom AS terrainNom, t.localisation
                 FROM recolte r
                 JOIN terrain t ON t.id = r.idTerrain
                 WHERE t.idUtilisateur = :idU
-                ORDER BY r.dateRecolte DESC";
+                ORDER BY r.dateRecolte DESC, r.id DESC";
         $req = config::getConnexion()->prepare($sql);
         $req->execute(['idU' => $idUtilisateur]);
         return $req->fetchAll();
@@ -31,35 +37,66 @@ class RecolteController
     // Les récoltes d'un terrain (page Détails terrain)
     public function listRecoltesByTerrain(int $idTerrain): array
     {
-        $sql = "SELECT * FROM recolte WHERE idTerrain = :idT ORDER BY dateRecolte DESC";
+        $sql = "SELECT * FROM recolte WHERE idTerrain = :idT ORDER BY dateRecolte DESC, id DESC";
         $req = config::getConnexion()->prepare($sql);
         $req->execute(['idT' => $idTerrain]);
         return $req->fetchAll();
     }
 
-    // Back : toutes les récoltes (+ terrain + propriétaire), avec recherche optionnelle
-    public function listAllRecoltes(string $recherche = ''): array
+    // Back : toutes les récoltes avec filtres, tri et pagination → ['lignes' => [...], 'total' => n]
+    public function listAllRecoltes(array $filtres = [], string $tri = 'dateRecolte', string $ordre = 'DESC',
+                                    int $page = 1, int $parPage = 0): array
     {
-        $sql = "SELECT r.*, t.nom AS terrainNom, CONCAT(u.prenom, ' ', u.nom) AS proprietaire
-                FROM recolte r
-                JOIN terrain t ON t.id = r.idTerrain
-                LEFT JOIN utilisateur u ON u.id = t.idUtilisateur";
+        $where  = ["u.statut <> 'SUPPRIME'"];   // comptes supprimés : données cachées
         $params = [];
-        if ($recherche !== '') {
-            $sql .= " WHERE r.culture LIKE :q1 OR t.nom LIKE :q2 OR u.nom LIKE :q3 OR u.prenom LIKE :q4";
-            $like = '%' . $recherche . '%';
-            $params = ['q1' => $like, 'q2' => $like, 'q3' => $like, 'q4' => $like];
+
+        if (($filtres['q'] ?? '') !== '') {
+            $where[] = "(r.culture LIKE :q1 OR t.nom LIKE :q2 OR u.nom LIKE :q3 OR u.prenom LIKE :q4)";
+            $like = '%' . $filtres['q'] . '%';
+            $params += ['q1' => $like, 'q2' => $like, 'q3' => $like, 'q4' => $like];
         }
-        $sql .= " ORDER BY r.dateRecolte DESC";
+        if (in_array($filtres['wilaya'] ?? '', TerrainController::WILAYAS, true)) {
+            $where[] = "t.localisation = :wilaya";
+            $params['wilaya'] = $filtres['wilaya'];
+        }
+        if (self::dateValide($filtres['du'] ?? '')) {
+            $where[] = "r.dateRecolte >= :du";
+            $params['du'] = $filtres['du'];
+        }
+        if (self::dateValide($filtres['au'] ?? '')) {
+            $where[] = "r.dateRecolte <= :au";
+            $params['au'] = $filtres['au'];
+        }
+
+        $base = "FROM recolte r JOIN terrain t ON t.id = r.idTerrain JOIN utilisateur u ON u.id = t.idUtilisateur
+                 WHERE " . implode(' AND ', $where);
+
+        $total = config::getConnexion()->prepare("SELECT COUNT(*) $base");
+        $total->execute($params);
+
+        $colonne = self::TRIS[$tri] ?? 'r.dateRecolte';
+        $sens    = strtoupper($ordre) === 'ASC' ? 'ASC' : 'DESC';
+        $sql = "SELECT r.*, t.nom AS terrainNom, t.localisation, CONCAT(u.prenom, ' ', u.nom) AS proprietaire
+                $base ORDER BY $colonne $sens, r.id DESC";
+        if ($parPage > 0) {
+            $sql .= " LIMIT :limite OFFSET :decalage";
+        }
         $req = config::getConnexion()->prepare($sql);
-        $req->execute($params);
-        return $req->fetchAll();
+        foreach ($params as $cle => $valeur) {
+            $req->bindValue($cle, $valeur);
+        }
+        if ($parPage > 0) {
+            $req->bindValue('limite', $parPage, PDO::PARAM_INT);
+            $req->bindValue('decalage', max(0, ($page - 1) * $parPage), PDO::PARAM_INT);
+        }
+        $req->execute();
+        return ['lignes' => $req->fetchAll(), 'total' => (int) $total->fetchColumn()];
     }
 
     // Une récolte SEULEMENT si son terrain appartient à cet utilisateur (sinon false)
     public function getRecolteOfUser(int $id, int $idUtilisateur)
     {
-        $sql = "SELECT r.*
+        $sql = "SELECT r.*, t.nom AS terrainNom, t.localisation
                 FROM recolte r
                 JOIN terrain t ON t.id = r.idTerrain
                 WHERE r.id = :id AND t.idUtilisateur = :idU";
@@ -68,23 +105,37 @@ class RecolteController
         return $req->fetch();
     }
 
+    // Page publique du QR code : récolte + terrain + agriculteur (sans email ni téléphone)
+    public function getParCode(string $code)
+    {
+        if (!preg_match('/^[A-F0-9]{12}$/', $code)) {
+            return false;
+        }
+        $sql = "SELECT r.id, r.culture, r.datePlantation, r.dateRecolte, r.quantite, r.unite, r.photo,
+                       t.id AS idTerrain, t.nom AS terrainNom, t.localisation, t.typeSol, t.superficie,
+                       t.latitude, t.longitude, t.polygone, u.prenom, u.nom
+                FROM recolte r
+                JOIN terrain t ON t.id = r.idTerrain
+                JOIN utilisateur u ON u.id = t.idUtilisateur
+                WHERE r.codeTracabilite = :code AND u.statut = 'ACTIF'";
+        $req = config::getConnexion()->prepare($sql);
+        $req->execute(['code' => $code]);
+        return $req->fetch();
+    }
+
     /* =========================================================
      *  AJOUT / MODIFICATION / SUPPRESSION
      * ========================================================= */
 
-    public function addRecolte(Recolte $recolte): void
+    public function addRecolte(Recolte $recolte): int
     {
-        $sql = "INSERT INTO recolte (culture, datePlantation, dateRecolte, quantite, unite, idTerrain)
-                VALUES (:culture, :datePlantation, :dateRecolte, :quantite, :unite, :idT)";
+        $sql = "INSERT INTO recolte (culture, datePlantation, dateRecolte, quantite, unite, idTerrain,
+                                     quantiteKg, codeTracabilite)
+                VALUES (:culture, :datePlantation, :dateRecolte, :quantite, :unite, :idT,
+                        :kg, :code)";
         $req = config::getConnexion()->prepare($sql);
-        $req->execute([
-            'culture'        => $recolte->getCulture(),
-            'datePlantation' => $recolte->getDatePlantation(),
-            'dateRecolte'    => $recolte->getDateRecolte(),
-            'quantite'       => $recolte->getQuantite(),
-            'unite'          => $recolte->getUnite(),
-            'idT'            => $recolte->getIdTerrain(),
-        ]);
+        $req->execute($this->parametres($recolte) + ['code' => self::nouveauCode()]);
+        return (int) config::getConnexion()->lastInsertId();
     }
 
     // ⚠️ Appeler seulement après avoir vérifié (getRecolteOfUser + validateRecolte)
@@ -93,18 +144,36 @@ class RecolteController
     {
         $sql = "UPDATE recolte
                 SET culture = :culture, datePlantation = :datePlantation, dateRecolte = :dateRecolte,
-                    quantite = :quantite, unite = :unite, idTerrain = :idT
+                    quantite = :quantite, unite = :unite, idTerrain = :idT,
+                    quantiteKg = :kg
                 WHERE id = :id";
         $req = config::getConnexion()->prepare($sql);
-        $req->execute([
-            'culture'        => $recolte->getCulture(),
-            'datePlantation' => $recolte->getDatePlantation(),
-            'dateRecolte'    => $recolte->getDateRecolte(),
-            'quantite'       => $recolte->getQuantite(),
-            'unite'          => $recolte->getUnite(),
-            'idT'            => $recolte->getIdTerrain(),
-            'id'             => $recolte->getId(),
-        ]);
+        $req->execute($this->parametres($recolte) + ['id' => $recolte->getId()]);
+    }
+
+    private function parametres(Recolte $r): array
+    {
+        return [
+            'culture'        => $r->getCulture(),
+            'datePlantation' => $r->getDatePlantation(),
+            'dateRecolte'    => $r->getDateRecolte(),
+            'quantite'       => $r->getQuantite(),
+            'unite'          => $r->getUnite(),
+            'idT'            => $r->getIdTerrain(),
+            'kg'             => $r->getQuantiteKg(),
+        ];
+    }
+
+    public function updatePhoto(int $id, ?string $photo): void
+    {
+        $req = config::getConnexion()->prepare("UPDATE recolte SET photo = :p WHERE id = :id");
+        $req->execute(['p' => $photo, 'id' => $id]);
+    }
+
+    // Code de traçabilité unique (12 caractères hexadécimaux, impossible à deviner)
+    public static function nouveauCode(): string
+    {
+        return strtoupper(bin2hex(random_bytes(6)));
     }
 
     // Front : $idUtilisateur obligatoire / Back (admin) : null
@@ -114,9 +183,9 @@ class RecolteController
             $req = config::getConnexion()->prepare("DELETE FROM recolte WHERE id = :id");
             $req->execute(['id' => $id]);
         } else {
-            $sql = "DELETE r FROM recolte r
-                    JOIN terrain t ON t.id = r.idTerrain
-                    WHERE r.id = :id AND t.idUtilisateur = :idU";
+            // Sous-requête : fonctionne avec MySQL et MariaDB
+            $sql = "DELETE FROM recolte
+                    WHERE id = :id AND idTerrain IN (SELECT id FROM terrain WHERE idUtilisateur = :idU)";
             $req = config::getConnexion()->prepare($sql);
             $req->execute(['id' => $id, 'idU' => $idUtilisateur]);
         }
@@ -139,35 +208,39 @@ class RecolteController
             $erreurs['idTerrain'] = 'Ce terrain ne vous appartient pas.';
         }
 
-        // Culture : obligatoire, 2 à 100 caractères, lettres / espaces / ' -
+        // Culture : obligatoire, 2 à 100 caractères (lettres, chiffres, espaces, ' - ( ) .)
         $culture = trim($data['culture'] ?? '');
         if ($culture === '') {
             $erreurs['culture'] = 'La culture est obligatoire.';
         } elseif (mb_strlen($culture) < 2 || mb_strlen($culture) > 100) {
             $erreurs['culture'] = 'La culture doit contenir entre 2 et 100 caractères.';
-        } elseif (!preg_match("/^[\p{L}\s'\-]+$/u", $culture)) {
-            $erreurs['culture'] = 'La culture ne doit contenir que des lettres, espaces, apostrophes ou tirets.';
+        } elseif (!preg_match("/^[\p{L}0-9\s'’\-().]+$/u", $culture)) {
+            $erreurs['culture'] = 'La culture ne doit contenir que des lettres, chiffres, espaces, apostrophes, tirets ou parenthèses.';
         }
 
-        // Dates : valides, plantation pas dans le futur, récolte après plantation
-        $datePlantation = $this->dateValide($data['datePlantation'] ?? '');
-        $dateRecolte    = $this->dateValide($data['dateRecolte'] ?? '');
+        // Dates : la récolte est déjà faite → pas de date dans le futur
+        $datePlantation = self::dateValide($data['datePlantation'] ?? '');
+        $dateRecolte    = self::dateValide($data['dateRecolte'] ?? '');
         $aujourdhui     = new DateTime('today');
 
         if (!$datePlantation) {
             $erreurs['datePlantation'] = 'Veuillez saisir une date de plantation valide.';
         } elseif ($datePlantation > $aujourdhui) {
             $erreurs['datePlantation'] = 'La date de plantation ne peut pas être dans le futur.';
+        } elseif ($datePlantation < new DateTime('2000-01-01')) {
+            $erreurs['datePlantation'] = 'La date de plantation n’est pas réaliste.';
         }
 
         if (!$dateRecolte) {
             $erreurs['dateRecolte'] = 'Veuillez saisir une date de récolte valide.';
         } elseif ($datePlantation && $dateRecolte <= $datePlantation) {
             $erreurs['dateRecolte'] = 'La date de récolte doit être après la date de plantation.';
+        } elseif ($dateRecolte > $aujourdhui) {
+            $erreurs['dateRecolte'] = 'La date de récolte ne peut pas être dans le futur.';
         }
 
-        // Quantité : nombre > 0 et raisonnable
-        $quantite = str_replace(',', '.', trim($data['quantite'] ?? ''));
+        // Quantité : obligatoire, nombre > 0
+        $quantite = str_replace(',', '.', trim((string) ($data['quantite'] ?? '')));
         if ($quantite === '') {
             $erreurs['quantite'] = 'La quantité est obligatoire.';
         } elseif (!is_numeric($quantite)) {
@@ -187,7 +260,7 @@ class RecolteController
     }
 
     // Retourne un DateTime si la chaîne est une vraie date AAAA-MM-JJ, sinon null
-    private function dateValide(string $valeur): ?DateTime
+    public static function dateValide(string $valeur): ?DateTime
     {
         $date = DateTime::createFromFormat('!Y-m-d', $valeur);
         if ($date && $date->format('Y-m-d') === $valeur) {
@@ -196,13 +269,46 @@ class RecolteController
         return null;
     }
 
+    // Rotation des cultures : même culture que la récolte précédente sur ce terrain ?
+    // Retourne un message d'avertissement (pas une erreur) ou null
+    public function avertissementRotation(int $idTerrain, string $culture, string $datePlantation, ?int $exceptId = null): ?string
+    {
+        $sql = "SELECT culture, dateRecolte FROM recolte
+                WHERE idTerrain = :t AND dateRecolte <= :d AND id <> :ex
+                ORDER BY dateRecolte DESC LIMIT 1";
+        $req = config::getConnexion()->prepare($sql);
+        $req->execute(['t' => $idTerrain, 'd' => $datePlantation, 'ex' => $exceptId ?? 0]);
+        $precedente = $req->fetch();
+        if ($precedente && self::normaliser($precedente['culture']) === self::normaliser($culture)) {
+            return 'Rotation des cultures : « ' . $precedente['culture'] . ' » a déjà été cultivé sur ce terrain '
+                 . '(récolte du ' . date('d/m/Y', strtotime($precedente['dateRecolte'])) . '). '
+                 . 'Replanter la même culture fatigue le sol et favorise les maladies : pensez à une légumineuse (fève, pois chiche).';
+        }
+        return null;
+    }
+
+    // 100.00 → "100" ; 1.20 → "1.2" (affichage sans zéros inutiles)
+    public static function nombreCourt(float $n): string
+    {
+        $texte = number_format($n, 2, '.', '');
+        return str_contains($texte, '.') ? rtrim(rtrim($texte, '0'), '.') : $texte;
+    }
+
+    // "Blé Dur " → "ble dur" (comparaison sans accents ni majuscules)
+    public static function normaliser(string $texte): string
+    {
+        $texte = mb_strtolower(trim($texte));
+        return strtr($texte, ['é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e', 'à' => 'a', 'â' => 'a',
+                              'î' => 'i', 'ï' => 'i', 'ô' => 'o', 'û' => 'u', 'ù' => 'u', 'ç' => 'c']);
+    }
+
     /* =========================================================
      *  STATISTIQUES (Back Office)
      * ========================================================= */
 
     public function countRecoltes(): int
     {
-        return (int) config::getConnexion()->query("SELECT COUNT(*) FROM recolte")->fetchColumn();
+        return (int) config::getConnexion()->query("SELECT COUNT(*) FROM recolte r JOIN terrain t ON t.id = r.idTerrain WHERE t.idUtilisateur IN (SELECT id FROM utilisateur WHERE statut <> 'SUPPRIME')")->fetchColumn();
     }
 
     public function dernieresRecoltes(int $limite = 5): array
@@ -210,6 +316,7 @@ class RecolteController
         $sql = "SELECT r.culture, r.dateRecolte, t.nom AS terrainNom
                 FROM recolte r
                 JOIN terrain t ON t.id = r.idTerrain
+                WHERE t.idUtilisateur IN (SELECT id FROM utilisateur WHERE statut <> 'SUPPRIME')
                 ORDER BY r.dateRecolte DESC
                 LIMIT :limite";
         $req = config::getConnexion()->prepare($sql);

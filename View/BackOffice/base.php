@@ -86,6 +86,18 @@ requireAdmin();
                     <span>Récoltes</span></a>
             </li>
 
+            <li class="nav-item">
+                <a class="nav-link" href="carteTerrains.php">
+                    <i class="fas fa-fw fa-globe-africa"></i>
+                    <span>Carte des terrains</span></a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="listeCultures.php">
+                    <i class="fas fa-fw fa-tags"></i>
+                    <span>Cultures et prix</span></a>
+            </li>
+
             <hr class="sidebar-divider">
 
             <li class="nav-item">

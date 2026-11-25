@@ -1,257 +1,157 @@
 <?php
-/* =====================================================================
- *  recommandation.php ET consommationEau.php
- *  PARTIE 1 SEULEMENT : à coller TOUT EN HAUT de chacune des deux pages
- *  (ligne 1, AVANT <!DOCTYPE html>). Le reste de la page ne change pas.
- *  → protège la page : pas connecté = redirection vers la connexion
- * ===================================================================== */
+/*
+ * Consommation d'eau : besoin en eau d'une culture sur un terrain pour les 7 prochains jours
+ * Méthode FAO-56 : ETc = ET0 (Open-Meteo) × kc (catalogue) ; besoin net = ETc − pluie utile
+ */
 require_once __DIR__ . '/../../Controller/AuthGuard.php';
+require_once __DIR__ . '/../../Controller/TerrainController.php';
+require_once __DIR__ . '/../../Controller/RecolteController.php';
+require_once __DIR__ . '/../../Controller/CultureController.php';
+require_once __DIR__ . '/../../Controller/MeteoController.php';
+require_once __DIR__ . '/../../Controller/Langue.php';
 
 $idUtilisateur = requireLogin();
+$terrainC      = new TerrainController();
+$cultureC      = new CultureController();
+$terrains      = $terrainC->listTerrainsByUser($idUtilisateur);
+$cultures      = $cultureC->listCultures();
+
+$idTerrain = filter_input(INPUT_GET, 'terrain', FILTER_VALIDATE_INT) ?: ($terrains[0]['id'] ?? null);
+$terrain   = $idTerrain ? $terrainC->getTerrainOfUser((int) $idTerrain, $idUtilisateur) : false;
+
+// Culture : celle demandée, sinon la dernière récoltée sur le terrain, sinon la première du catalogue
+$culture = null;
+if (($_GET['culture'] ?? '') !== '') {
+    $culture = $cultureC->trouver((string) $_GET['culture']);
+}
+if (!$culture && $terrain) {
+    foreach ((new RecolteController())->listRecoltesByTerrain((int) $terrain['id']) as $r) {
+        if ($culture = $cultureC->trouver($r['culture'])) {
+            break;
+        }
+    }
+}
+$culture ??= $cultures[0] ?? null;
+
+$resultat = null;
+$erreur   = null;
+if ($idTerrain && !$terrain) {
+    $erreur = "Ce terrain n'existe pas ou ne vous appartient pas.";
+} elseif ($terrain && $culture) {
+    [$lat, $lng] = TerrainController::position($terrain);
+    $meteo = (new MeteoController())->previsions($lat, $lng);
+    if ($meteo['ok']) {
+        $resultat = MeteoController::besoinEau($meteo['jours'], (float) $culture['kc'], (float) $terrain['superficie']);
+        [$conseil, $valeursConseil] = MeteoController::conseilIrrigation($resultat);
+    } else {
+        $erreur = $meteo['erreur'];
+    }
+}
+
+$titrePage  = "Consommation d'eau";
+$pageActive = 'consommationEau.php';
+$jsSupp     = ['assets/js/graphiques.js'];
+require __DIR__ . '/partials/haut.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-  <meta charset="utf-8">
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
-  <title>Taam Bledi</title>
-  <meta name="description" content="">
-  <meta name="keywords" content="">
-
-  <!-- Favicons -->
-  <link href="assets/img/favicon.png" rel="icon">
-  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
-
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com" rel="preconnect">
-  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600;1,700;1,800&family=Marcellus:wght@400&display=swap" rel="stylesheet">
-
-  <!-- Vendor CSS Files -->
-  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
-  <link href="assets/vendor/aos/aos.css" rel="stylesheet">
-  <link href="assets/vendor/swiper/swiper-bundle.min.css" rel="stylesheet">
-  <link href="assets/vendor/glightbox/css/glightbox.min.css" rel="stylesheet">
-
-  <!-- Main CSS File -->
-  <link href="assets/css/main.css" rel="stylesheet">
-
-  <!-- =======================================================
-  * Template Name: Taam Bledi
-  * Template URL: https://bootstrapmade.com/agriculture-bootstrap-website-template/
-  * Updated: Aug 07 2024 with Bootstrap v5.3.3
-  * Author: BootstrapMade.com
-  * License: https://bootstrapmade.com/license/
-  ======================================================== -->
-</head>
-
-<body class="index-page">
-
-  <header id="header" class="header d-flex align-items-center position-relative">
-    <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
-
-      <a href="index.html" class="logo d-flex align-items-center">
-        <!-- Uncomment the line below if you also wish to use an image logo -->
-        <img src="assets/img/logo.png" alt="Taam Bledi">
-        <!-- <h1 class="sitename">Taam Bledi</h1>  -->
-      </a>
-
-      <nav id="navmenu" class="navmenu">
-        <ul>
-          <li><a href="index.html">Home</a></li>
-          <li><a href="about.html">About Us</a></li>
-          <li><a href="services.html">Our Services</a></li>
-          <li><a href="testimonials.html">Testimonials</a></li>
-          <li><a href="blog.html">Blog</a></li>
-          <li class="dropdown"><a href="#"><span>Terrains &amp; Récoltes</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
-            <ul>
-              <li><a href="mesTerrains.php">Mes terrains</a></li>
-              <li><a href="mesRecoltes.php">Mes récoltes</a></li>
-              <li><a href="recommandation.php">Recommandation IA</a></li>
-              <li><a href="consommationEau.php" class="active">Consommation d'eau</a></li>
-            </ul>
-          </li>
-          <li class="dropdown"><a href="#"><span>Mon compte</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
-            <ul>
-              <li><a href="profil.php">Mon profil</a></li>
-              <li><a href="mesBadges.php">Mes badges</a></li>
-              <li><a href="connexion.php">Connexion</a></li>
-              <li><a href="inscription.php">Inscription</a></li>
-              <li><a href="deconnexion.php">Déconnexion</a></li>
-            </ul>
-          </li>
-          <li><a href="contact.html">Contact</a></li>
-        </ul>
-        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
-      </nav>
-
-    </div>
-  </header>
-
-  <main class="main">
-    <section class="container my-5">
-      <h2 class="mb-2">Consommation d'eau</h2>
-      <p class="text-muted mb-4">Suivi de l'eau utilisée pour chaque terrain et culture.</p>
-
-      <!-- Filtre -->
-      <form action="" method="GET" class="row g-3 mb-4">
-        <div class="col-md-5">
-          <label for="idTerrain" class="form-label">Terrain</label>
-          <select class="form-select" id="idTerrain" name="idTerrain">
-            <option value="">Tous les terrains</option>
-            <option value="1">Terrain Zaghouan</option>
-            <option value="2">Terrain Béja</option>
-            <option value="3">Terrain Nabeul</option>
-          </select>
-        </div>
-        <div class="col-md-4">
-          <label for="mois" class="form-label">Mois</label>
-          <input type="month" class="form-control" id="mois" name="mois" value="2026-11">
-        </div>
-        <div class="col-md-3 d-flex align-items-end">
-          <button type="submit" class="btn btn-success w-100">Afficher</button>
-        </div>
-      </form>
-
-      <!-- Cartes résumé -->
-      <div class="row g-3 mb-4">
-        <div class="col-md-4">
-          <div class="card text-center p-3">
-            <i class="bi bi-droplet fs-2 text-primary"></i>
-            <h3 class="mt-2 mb-0">1 250 m³</h3>
-            <p class="text-muted mb-0">Total ce mois</p>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card text-center p-3">
-            <i class="bi bi-geo-alt fs-2 text-success"></i>
-            <h3 class="mt-2 mb-0">3</h3>
-            <p class="text-muted mb-0">Terrains suivis</p>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card text-center p-3">
-            <i class="bi bi-graph-up fs-2 text-warning"></i>
-            <h3 class="mt-2 mb-0">Terrain Nabeul</h3>
-            <p class="text-muted mb-0">Plus grande consommation</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <footer id="footer" class="footer dark-background">
-
-    <div class="footer-top">
+    <section class="page-terrains">
       <div class="container">
-        <div class="row gy-4">
-          <div class="col-lg-4 col-md-6 footer-about">
-            <a href="index.html" class="logo d-flex align-items-center">
-              <span class="sitename">Taam Bledi</span>
-            </a>
-            <div class="footer-contact pt-3">
-              <p>A108 Adam Street</p>
-              <p>New York, NY 535022</p>
-              <p class="mt-3"><strong>Phone:</strong> <span>+1 5589 55488 55</span></p>
-              <p><strong>Email:</strong> <span>info@example.com</span></p>
+
+        <div class="hero-terrains">
+          <div>
+            <p class="sur-titre"><?= te('Irrigation intelligente') ?></p>
+            <h1><?= te("Consommation d'eau") ?></h1>
+          </div>
+        </div>
+
+        <?php if (empty($terrains)): ?>
+          <div class="carte-terrain carte-vide">
+            <i class="bi bi-droplet"></i>
+            <p class="mt-3 mb-4"><?= te('Ajoutez un terrain pour calculer son besoin en eau.') ?></p>
+            <div><a href="ajouterTerrain.php" class="btn-hero"><?= te('Ajouter un terrain') ?></a></div>
+          </div>
+        <?php else: ?>
+
+        <form method="GET" class="tb-panneau mb-4" novalidate>
+          <div class="row g-3 align-items-end">
+            <div class="col-md-5">
+              <label for="terrain" class="form-label"><?= te('Terrain') ?></label>
+              <select class="form-select" id="terrain" name="terrain">
+                <?php foreach ($terrains as $t): ?>
+                  <option value="<?= e($t['id']) ?>" <?= (int) $idTerrain === (int) $t['id'] ? 'selected' : '' ?>><?= e($t['nom']) ?> (<?= e($t['superficie']) ?> ha)</option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label for="culture" class="form-label"><?= te('Culture') ?></label>
+              <select class="form-select" id="culture" name="culture">
+                <?php foreach ($cultures as $c): ?>
+                  <option value="<?= e($c['nom']) ?>" <?= $culture && $culture['id'] === $c['id'] ? 'selected' : '' ?>><?= te($c['nom']) ?> (kc <?= e($c['kc']) ?>)</option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <button type="submit" class="btn-hero border-0 w-100"><i class="bi bi-calculator"></i> <?= te('Calculer') ?></button>
+            </div>
+          </div>
+        </form>
+
+        <?php if ($erreur): ?>
+          <div class="alert alert-warning"><i class="bi bi-wifi-off"></i> <?= te($erreur) ?></div>
+        <?php elseif ($resultat): ?>
+
+          <div class="tb-conseil-eau mb-4">
+            <i class="bi bi-droplet-half"></i>
+            <div>
+              <small><?= te('Conseil du jour pour {c} — {t}', ['c' => t($culture['nom']), 't' => $terrain['nom']]) ?></small>
+              <p class="mb-0"><?= te($conseil, $valeursConseil) ?></p>
             </div>
           </div>
 
-          <div class="col-lg-2 col-md-3 footer-links">
-            <h4>Useful Links</h4>
-            <ul>
-              <li><a href="#">Home</a></li>
-              <li><a href="#">About us</a></li>
-              <li><a href="#">Services</a></li>
-              <li><a href="#">Terms of service</a></li>
-              <li><a href="#">Privacy policy</a></li>
-            </ul>
+          <div class="row g-3 mb-4">
+            <div class="col-md-4"><div class="tb-kpi"><i class="bi bi-moisture"></i><strong><?= e(number_format($resultat['totalM3'], 1, ',', ' ')) ?> m³</strong><span><?= te('Besoin sur 7 jours') ?></span></div></div>
+            <div class="col-md-4"><div class="tb-kpi"><i class="bi bi-calendar-day"></i><strong><?= e(number_format($resultat['moyenneM3'], 1, ',', ' ')) ?> m³</strong><span><?= te('Moyenne par jour') ?></span></div></div>
+            <div class="col-md-4"><div class="tb-kpi"><i class="bi bi-recycle"></i><strong><?= e(number_format($resultat['totalM3'] * 0.35, 1, ',', ' ')) ?> m³</strong><span><?= te('Économie possible au goutte-à-goutte (≈ 35 %)') ?></span></div></div>
           </div>
 
-          <div class="col-lg-2 col-md-3 footer-links">
-            <h4>Our Services</h4>
-            <ul>
-              <li><a href="#">Web Design</a></li>
-              <li><a href="#">Web Development</a></li>
-              <li><a href="#">Product Management</a></li>
-              <li><a href="#">Marketing</a></li>
-              <li><a href="#">Graphic Design</a></li>
-            </ul>
+          <div class="row g-4">
+            <div class="col-lg-6">
+              <div class="tb-panneau h-100">
+                <h2 class="tb-titre-panneau"><?= te("Eau d'irrigation à apporter par jour (m³)") ?></h2>
+                <div class="tb-graphique" data-type="barres" data-unite="m³"
+                     data-libelles='<?= e(json_encode(array_map(fn($j) => date('d/m', strtotime($j['date'])), $resultat['jours']))) ?>'
+                     data-series='<?= e(json_encode([['nom' => 'm³', 'valeurs' => array_column($resultat['jours'], 'm3'), 'couleur' => '#257de0']])) ?>'></div>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <div class="tb-panneau h-100">
+                <h2 class="tb-titre-panneau"><?= te('Détail du calcul') ?></h2>
+                <div class="table-responsive">
+                  <table class="table table-sm align-middle tb-table">
+                    <thead><tr><th><?= te('Jour') ?></th><th title="<?= te('Évapotranspiration de référence') ?>">ET0</th><th title="ET0 × kc">ETc</th><th><?= te('Pluie') ?></th><th><?= te('Besoin net') ?></th><th class="text-end">m³</th></tr></thead>
+                    <tbody>
+                      <?php foreach ($resultat['jours'] as $j): ?>
+                        <tr><td><?= te(MeteoController::libelleJour($j['date'])) ?></td><td><?= e($j['et0']) ?> mm</td><td><?= e($j['etc']) ?> mm</td>
+                            <td><?= e($j['pluie']) ?> mm</td><td><?= e($j['netMm']) ?> mm</td><td class="text-end fw-bold"><?= e(number_format($j['m3'], 1, ',', ' ')) ?></td></tr>
+                      <?php endforeach; ?>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div class="col-lg-2 col-md-3 footer-links">
-            <h4>Hic solutasetp</h4>
-            <ul>
-              <li><a href="#">Molestiae accusamus iure</a></li>
-              <li><a href="#">Excepturi dignissimos</a></li>
-              <li><a href="#">Suscipit distinctio</a></li>
-              <li><a href="#">Dilecta</a></li>
-              <li><a href="#">Sit quas consectetur</a></li>
-            </ul>
+          <div class="tb-panneau mt-4">
+            <h2 class="tb-titre-panneau"><i class="bi bi-mortarboard"></i> <?= te('Comment est fait le calcul ?') ?></h2>
+            <ol class="mb-0">
+              <li><?= te('ET0 : quantité d’eau évaporée chaque jour par une prairie de référence (donnée Open-Meteo pour la position du terrain).') ?></li>
+              <li><?= te('ETc = ET0 × kc : le coefficient kc dépend de la culture ({c} : {kc}).', ['c' => t($culture['nom']), 'kc' => $culture['kc']]) ?></li>
+              <li><?= te('Pluie utile = 80 % de la pluie prévue ; le surplus est gardé pour le jour suivant.') ?></li>
+              <li><?= te('Volume = besoin net (mm) × superficie ({s} ha) × 10 (1 mm sur 1 ha = 10 m³).', ['s' => $terrain['superficie']]) ?></li>
+            </ol>
           </div>
-
-          <div class="col-lg-2 col-md-3 footer-links">
-            <h4>Nobis illum</h4>
-            <ul>
-              <li><a href="#">Ipsam</a></li>
-              <li><a href="#">Laudantium dolorum</a></li>
-              <li><a href="#">Dinera</a></li>
-              <li><a href="#">Trodelas</a></li>
-              <li><a href="#">Flexo</a></li>
-            </ul>
-          </div>
-
-        </div>
-      </div>
-    </div>
-
-    <div class="copyright text-center">
-      <div class="container d-flex flex-column flex-lg-row justify-content-center justify-content-lg-between align-items-center">
-
-        <div class="d-flex flex-column align-items-center align-items-lg-start">
-          <div>
-            © Copyright <strong><span>MyWebsite</span></strong>. All Rights Reserved
-          </div>
-          <div class="credits">
-            <!-- All the links in the footer should remain intact. -->
-            <!-- You can delete the links only if you purchased the pro version. -->
-            <!-- Licensing information: https://bootstrapmade.com/license/ -->
-            <!-- Purchase the pro version with working PHP/AJAX contact form: https://bootstrapmade.com/herobiz-bootstrap-business-template/ -->
-            Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a> | <a href="https://bootstrapmade.com/tools/">DevTools</a>
-          </div>
-        </div>
-
-        <div class="social-links order-first order-lg-last mb-3 mb-lg-0">
-          <a href=""><i class="bi bi-twitter-x"></i></a>
-          <a href=""><i class="bi bi-facebook"></i></a>
-          <a href=""><i class="bi bi-instagram"></i></a>
-          <a href=""><i class="bi bi-linkedin"></i></a>
-        </div>
+        <?php endif; ?>
+        <?php endif; ?>
 
       </div>
-    </div>
-
-  </footer>
-
-  <!-- Scroll Top -->
-  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
-
-  <!-- Preloader -->
-  <div id="preloader"></div>
-
-  <!-- Vendor JS Files -->
-  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/vendor/php-email-form/validate.js"></script>
-  <script src="assets/vendor/aos/aos.js"></script>
-  <script src="assets/vendor/swiper/swiper-bundle.min.js"></script>
-  <script src="assets/vendor/glightbox/js/glightbox.min.js"></script>
-
-  <!-- Main JS File -->
-  <script src="assets/js/main.js"></script>
-
-</body>
-
-</html>
+    </section>
+<?php require __DIR__ . '/partials/bas.php'; ?>

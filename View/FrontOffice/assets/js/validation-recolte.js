@@ -1,20 +1,19 @@
 /*
  * Contrôle de saisie (JavaScript) : formulaire Récolte
  * Mêmes règles que validateRecolte() dans RecolteController.php
+ * (récolte terminée : dates passées, quantité obligatoire)
  */
 document.addEventListener('DOMContentLoaded', function () {
   const form = document.getElementById('formRecolte');
   if (!form) return;
+  const t = window.tj || function (s) { return s; };
 
   function afficherErreur(idChamp, message) {
     const champ = document.getElementById(idChamp);
     const zone = document.getElementById('erreur-' + idChamp);
-    zone.textContent = message;
-    if (message) {
-      champ.classList.add('is-invalid');
-    } else {
-      champ.classList.remove('is-invalid');
-    }
+    zone.textContent = message ? t(message) : '';
+    if (champ) champ.classList.toggle('is-invalid', !!message);
+    return !message;
   }
 
   // Vraie date au format AAAA-MM-JJ ? (refuse par ex. 2026-02-31)
@@ -28,86 +27,56 @@ document.addEventListener('DOMContentLoaded', function () {
 
   form.addEventListener('submit', function (event) {
     let valide = true;
+    const aujourdhui = new Date();
+    aujourdhui.setHours(0, 0, 0, 0);
 
     // Terrain
-    if (document.getElementById('idTerrain').value === '') {
-      afficherErreur('idTerrain', 'Veuillez choisir un terrain.');
-      valide = false;
-    } else {
-      afficherErreur('idTerrain', '');
-    }
+    valide = afficherErreur('idTerrain', document.getElementById('idTerrain').value === '' ? 'Veuillez choisir un terrain.' : '') && valide;
 
     // Culture
     const culture = document.getElementById('culture').value.trim();
-    const regexCulture = /^[\p{L}\s'\-]+$/u;
-    if (culture === '') {
-      afficherErreur('culture', 'La culture est obligatoire.');
-      valide = false;
-    } else if (culture.length < 2 || culture.length > 100) {
-      afficherErreur('culture', 'La culture doit contenir entre 2 et 100 caractères.');
-      valide = false;
-    } else if (!regexCulture.test(culture)) {
-      afficherErreur('culture', 'La culture ne doit contenir que des lettres, espaces, apostrophes ou tirets.');
-      valide = false;
-    } else {
-      afficherErreur('culture', '');
-    }
+    if (culture === '') valide = afficherErreur('culture', 'La culture est obligatoire.') && valide;
+    else if (culture.length < 2 || culture.length > 100) valide = afficherErreur('culture', 'La culture doit contenir entre 2 et 100 caractères.') && valide;
+    else if (!/^[\p{L}0-9\s'’\-().]+$/u.test(culture)) valide = afficherErreur('culture', 'La culture ne doit contenir que des lettres, chiffres, espaces, apostrophes, tirets ou parenthèses.') && valide;
+    else afficherErreur('culture', '');
 
     // Dates
-    const aujourdhui = new Date();
-    aujourdhui.setHours(0, 0, 0, 0);
-    const datePlantation = dateValide(document.getElementById('datePlantation').value);
-    const dateRecolte = dateValide(document.getElementById('dateRecolte').value);
+    const plantation = dateValide(document.getElementById('datePlantation').value);
+    const recolte = dateValide(document.getElementById('dateRecolte').value);
+    if (!plantation) valide = afficherErreur('datePlantation', 'Veuillez saisir une date de plantation valide.') && valide;
+    else if (plantation > aujourdhui) valide = afficherErreur('datePlantation', 'La date de plantation ne peut pas être dans le futur.') && valide;
+    else if (plantation < new Date(2000, 0, 1)) valide = afficherErreur('datePlantation', 'La date de plantation n’est pas réaliste.') && valide;
+    else afficherErreur('datePlantation', '');
 
-    if (!datePlantation) {
-      afficherErreur('datePlantation', 'Veuillez saisir une date de plantation valide.');
-      valide = false;
-    } else if (datePlantation > aujourdhui) {
-      afficherErreur('datePlantation', 'La date de plantation ne peut pas être dans le futur.');
-      valide = false;
-    } else {
-      afficherErreur('datePlantation', '');
-    }
-
-    if (!dateRecolte) {
-      afficherErreur('dateRecolte', 'Veuillez saisir une date de récolte valide.');
-      valide = false;
-    } else if (datePlantation && dateRecolte <= datePlantation) {
-      afficherErreur('dateRecolte', 'La date de récolte doit être après la date de plantation.');
-      valide = false;
-    } else {
-      afficherErreur('dateRecolte', '');
-    }
+    if (!recolte) valide = afficherErreur('dateRecolte', 'Veuillez saisir une date de récolte valide.') && valide;
+    else if (plantation && recolte <= plantation) valide = afficherErreur('dateRecolte', 'La date de récolte doit être après la date de plantation.') && valide;
+    else if (recolte > aujourdhui) valide = afficherErreur('dateRecolte', 'La date de récolte ne peut pas être dans le futur.') && valide;
+    else afficherErreur('dateRecolte', '');
 
     // Quantité
-    const quantiteTexte = document.getElementById('quantite').value.trim().replace(',', '.');
-    const quantite = Number(quantiteTexte);
-    if (quantiteTexte === '') {
-      afficherErreur('quantite', 'La quantité est obligatoire.');
-      valide = false;
-    } else if (isNaN(quantite)) {
-      afficherErreur('quantite', 'La quantité doit être un nombre.');
-      valide = false;
-    } else if (quantite <= 0) {
-      afficherErreur('quantite', 'La quantité doit être supérieure à 0.');
-      valide = false;
-    } else if (quantite > 1000000) {
-      afficherErreur('quantite', 'La quantité ne peut pas dépasser 1 000 000.');
-      valide = false;
-    } else {
-      afficherErreur('quantite', '');
-    }
+    const texte = document.getElementById('quantite').value.trim().replace(',', '.');
+    const q = Number(texte);
+    if (texte === '') valide = afficherErreur('quantite', 'La quantité est obligatoire.') && valide;
+    else if (isNaN(q)) valide = afficherErreur('quantite', 'La quantité doit être un nombre.') && valide;
+    else if (q <= 0) valide = afficherErreur('quantite', 'La quantité doit être supérieure à 0.') && valide;
+    else if (q > 1000000) valide = afficherErreur('quantite', 'La quantité ne peut pas dépasser 1 000 000.') && valide;
+    else afficherErreur('quantite', '');
 
     // Unité
-    if (document.getElementById('unite').value === '') {
-      afficherErreur('unite', 'Veuillez choisir une unité.');
-      valide = false;
-    } else {
-      afficherErreur('unite', '');
+    valide = afficherErreur('unite', ['kg', 'quintal', 'tonne'].indexOf(document.getElementById('unite').value) === -1 ? 'Veuillez choisir une unité.' : '') && valide;
+
+    // Photo
+    const photo = document.getElementById('photo');
+    if (photo && photo.files[0]) {
+      const f = photo.files[0];
+      if (!/^image\/(jpeg|png|webp|gif)$/.test(f.type)) valide = afficherErreur('photo', 'Format accepté : JPG, PNG, WEBP ou GIF.') && valide;
+      else if (f.size > 2 * 1024 * 1024) valide = afficherErreur('photo', "L'image ne doit pas dépasser 2 Mo.") && valide;
+      else afficherErreur('photo', '');
     }
 
     if (!valide) {
       event.preventDefault();
+      event.stopImmediatePropagation();   // pas d'enregistrement hors ligne si le formulaire est faux
     }
   });
 });

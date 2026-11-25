@@ -10,6 +10,6 @@
  */
 const MAIL_HOTE         = 'smtp.gmail.com';
 const MAIL_PORT         = 465;                       // SSL
-const MAIL_UTILISATEUR  = 'yomnaghannem0@gmail.com';
-const MAIL_MOT_DE_PASSE = 'dapb afax wnjz klxw';     // mot de passe d'application
+const MAIL_UTILISATEUR  = 'votre.adresse@gmail.com';
+const MAIL_MOT_DE_PASSE = 'xxxx xxxx xxxx xxxx';     // mot de passe d'application
 const MAIL_NOM_EXPEDITEUR = 'Taam Bledi';

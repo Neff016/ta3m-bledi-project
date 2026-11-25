@@ -1,0 +1,42 @@
+/* Fiche terrain et étiquette QR : pages pensées pour l'impression (A4) */
+* { box-sizing: border-box; }
+body { font-family: "Open Sans", Arial, sans-serif; color: #1e2b24; background: #eef2ef; margin: 0; }
+[dir="rtl"] body { font-family: "Cairo", Arial, sans-serif; }
+.barre-actions { display: flex; gap: 12px; justify-content: center; padding: 16px; }
+.barre-actions button, .barre-actions a {
+  background: #2f5d3a; color: #fff; border: 0; border-radius: 10px; padding: 10px 18px;
+  font-size: 1rem; text-decoration: none; cursor: pointer;
+}
+.barre-actions a { background: #fff; color: #2f5d3a; border: 1px solid #2f5d3a; }
+.fiche { background: #fff; max-width: 210mm; margin: 0 auto 30px; padding: 18mm 16mm; box-shadow: 0 6px 24px rgba(0,0,0,.08); }
+.fiche-entete { display: flex; align-items: center; gap: 18px; border-bottom: 3px solid #2f5d3a; padding-bottom: 12px; margin-bottom: 18px; }
+.fiche-entete img { width: 70px; }
+.fiche-entete h1 { margin: 0; font-size: 1.7rem; color: #2f5d3a; }
+.fiche-entete p { margin: 2px 0 0; color: #6b7470; }
+.fiche h2 { font-size: 1.15rem; color: #2f5d3a; border-bottom: 1px solid #dfe7e1; padding-bottom: 4px; margin: 22px 0 10px; }
+.fiche table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.fiche th, .fiche td { border: 1px solid #dfe7e1; padding: 6px 8px; text-align: start; vertical-align: top; }
+.fiche thead th { background: #f0f5f1; }
+.fiche table.infos th { background: #f7faf8; width: 18%; }
+.fiche .code { font-family: monospace; font-size: .8rem; }
+.fiche .vide { color: #6b7470; font-style: italic; }
+.fiche-pied { margin-top: 30px; text-align: center; color: #8a958f; font-size: .8rem; }
+
+/* Étiquette QR */
+.etiquettes { display: flex; flex-wrap: wrap; gap: 8mm; justify-content: center; padding: 10px; }
+.etiquette { width: 90mm; background: #fff; border: 2px dashed #2f5d3a; border-radius: 6mm; padding: 6mm; text-align: center; }
+.etiquette .marque { font-family: "Marcellus", serif; font-size: 1.4rem; color: #2f5d3a; margin: 0; }
+.etiquette .produit { font-size: 1.25rem; font-weight: 700; margin: 2mm 0 0; }
+.etiquette .origine { color: #4b5650; font-size: .9rem; margin: 1mm 0 3mm; }
+.etiquette svg { width: 48mm; height: 48mm; }
+.etiquette .code { font-family: monospace; letter-spacing: 2px; font-size: .85rem; margin-top: 2mm; }
+.etiquette .scan { font-size: .78rem; color: #6b7470; margin: 1mm 0 0; }
+.reglage { text-align: center; margin-bottom: 8px; }
+
+@media print {
+  body { background: #fff; }
+  .barre-actions, .reglage { display: none; }
+  .fiche { box-shadow: none; margin: 0; padding: 0; max-width: none; }
+  .fiche section { break-inside: avoid; }
+  @page { size: A4; margin: 14mm; }
+}
