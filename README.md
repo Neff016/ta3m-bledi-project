@@ -136,6 +136,62 @@ Les plantations en cours, leur suivi (arrosage, observations) et le diagnostic d
 La carte, la météo et le satellite ont besoin d'Internet. Les clés d'accès, la saisie vocale et le mode
 hors ligne marchent sur `http://localhost` (ou en HTTPS).
 
+## Module Terrains et Récoltes : CRUD et règles métiers
+
+### CRUD (Front Office et Back Office)
+
+Entités principales liées par une jointure : **Terrain 1 → * Récolte** (clé étrangère `recolte.idTerrain`, requêtes `JOIN`).
+
+| Entité | Front Office (agriculteur) | Back Office (admin) |
+|---|---|---|
+| Terrain | ajouter, lister, détails, modifier, supprimer (ses terrains) | ajouter (choix de l'agriculteur), lister, filtrer, trier, modifier, supprimer, export CSV |
+| Récolte | ajouter, lister, modifier, supprimer (ses récoltes) | ajouter (choix du terrain), lister, filtrer, trier, modifier, supprimer, export CSV |
+| Culture (catalogue) | consultation (recommandation, autocomplétion) | ajouter, lister, modifier, supprimer |
+| Dépense | ajouter, lister, modifier, supprimer | totaux dans la rentabilité |
+| Parcelle | ajouter (contour sur la carte), lister, modifier, supprimer | nombre de parcelles par terrain |
+| Contrat foncier | ajouter / modifier, afficher, supprimer | liste filtrée par régime, contrats qui se terminent |
+| Certification bio | ajouter / modifier, afficher, supprimer | liste avec statut (conversion, certifié, expiré) |
+| Contrôle qualité | ajouter / modifier, afficher, supprimer | classe affichée dans la liste des récoltes |
+
+Architecture : Model (classes avec getters / setters) → Controller (requêtes **PDO préparées** + règles) → View (HTML).
+Aucune requête SQL dans les vues. Chaque formulaire est contrôlé **en JavaScript et en PHP** (mêmes règles, `novalidate`, pas de validation HTML5).
+
+### Règles métiers simples
+
+- Récolte : date de plantation ≤ aujourd'hui et après 2000, date de récolte après la plantation et pas dans le futur, quantité > 0 et ≤ 1 000 000, unité kg / quintal / tonne (convertie en kg).
+- Terrain : nom de 3 à 100 caractères, wilaya et type de sol choisis dans une liste, superficie entre 0 et 100 000 ha, position GPS (facultative) en Tunisie ; un terrain appartient à un agriculteur **actif**.
+- Un agriculteur ne voit, ne modifie et ne supprime que **ses** terrains, récoltes, parcelles, dépenses et contrats (vérifié côté serveur).
+- Supprimer un terrain supprime ses récoltes, parcelles, dépenses, contrat et certification ; supprimer une parcelle garde ses récoltes sur le terrain.
+- Parcelle : nom unique sur le terrain, surface > 0, somme des parcelles ≤ superficie du terrain, contour d'au moins 3 points en Tunisie (surface recalculée par le serveur).
+- Contrat foncier : location → loyer obligatoire ; khammès / métayage → part du propriétaire entre 1 et 99 % ; date de fin après la date de début (99 ans maximum).
+- Certification bio : début de conversion dans le passé, durée 24 ou 36 mois, expiration après la fin de la conversion.
+- Contrôle qualité : classe Extra / I / II, déchets entre 0 et 100 %, humidité obligatoire pour une céréale, °Brix entre 0 et 40 pour un fruit, contrôle pas avant la plantation.
+- Dépense : montant entre 0 et 10 000 000 DT, date pas dans le futur.
+
+### Règles métiers avancées
+
+- **Rotation des cultures** : avertissement si la même culture est replantée sur la même parcelle ; plan sur 4 ans (céréale → légumineuse → légume → jachère) avec alerte « même famille 2 ans de suite ».
+- **Règle bio** : une récolte est « bio » seulement si son terrain était certifié **à la date de la récolte** (pas pendant la conversion, pas après l'expiration).
+- **Rentabilité** : chiffre d'affaires = kg vendables (sans déchets) × prix du marché × classe (Extra × 1,2 ; II × 0,8) × prime bio (× 1,25) ; bénéfice = chiffre d'affaires − dépenses − loyer (au prorata du temps) ou part du propriétaire.
+- **Recommandation** : score sur 100 (sol 30, saison 25, région 20, eau 15, historique 10, rotation ±).
+- **Besoin en eau** (FAO-56 : ET0 × kc − pluie utile) et **prévision de récolte** (régression linéaire).
+- **Bilan environnemental** : litres d'eau et kg de CO₂e par kg récolté, note de A à E.
+- **Alertes** : fin de contrat dans 30 jours, fin de conversion bio, certificat expiré, météo (gel, canicule, vent).
+- **Badges automatiques** : premier terrain, première récolte, une tonne, 10 dépenses, étiquette QR, terrain bio.
+
+## Utilisation de l'intelligence artificielle (transparence)
+
+Un assistant d'IA (**Claude**, Anthropic) a été utilisé pendant le développement du module Terrains et Récoltes :
+
+- proposition d'idées de fonctionnalités et de règles métiers ;
+- aide à l'écriture du code PHP (MVC, PDO), JavaScript et CSS, et des contrôles de saisie ;
+- traduction arabe de l'interface (`View/FrontOffice/lang/ar.php`) ;
+- tests automatiques (pages, contrôles de saisie, accès entre utilisateurs) et relecture.
+
+Le travail personnel : choix des fonctionnalités, intégration dans le template et la base de l'équipe, tests sur XAMPP,
+vérification des calculs, compréhension et explication du code. Les formules (FAO-56, régression, rotation, note A–E)
+sont documentées dans les commentaires du code.
+
 ## Page profil
 
 - En-tête avec photo (ou initiales), rôle, statut, date d'inscription et contact
