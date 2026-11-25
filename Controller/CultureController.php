@@ -6,6 +6,7 @@
  * - Liste des noms pour l'autocomplétion (catalogue + variétés du Musée)
  */
 require_once __DIR__ . '/../Config/config.php';
+require_once __DIR__ . '/../Model/Culture.php';
 require_once __DIR__ . '/TerrainController.php';
 require_once __DIR__ . '/RecolteController.php';
 
@@ -77,20 +78,32 @@ class CultureController
         return $noms;
     }
 
-    // Modification par l'admin (prix du marché, rendement, besoins…)
-    public function updateCulture(int $id, array $d): void
+    // Modification par l'admin (prix du marché, rendement, besoins…) — le nom ne change pas
+    public function updateCulture(Culture $c): void
     {
         $sql = "UPDATE culture SET categorie = :cat, sols = :sols, saisons = :saisons, regions = :regions,
                 besoinEau = :eau, kc = :kc, rendement = :rdt, dureeJours = :duree, prixKg = :prix, conseil = :conseil
                 WHERE id = :id";
-        config::getConnexion()->prepare($sql)->execute($this->parametres($d) + ['id' => $id]);
+        config::getConnexion()->prepare($sql)->execute($this->parametres($c) + ['id' => $c->getId()]);
     }
 
-    public function addCulture(array $d): void
+    public function addCulture(Culture $c): int
     {
         $sql = "INSERT INTO culture (nom, categorie, sols, saisons, regions, besoinEau, kc, rendement, dureeJours, prixKg, conseil)
                 VALUES (:nom, :cat, :sols, :saisons, :regions, :eau, :kc, :rdt, :duree, :prix, :conseil)";
-        config::getConnexion()->prepare($sql)->execute($this->parametres($d) + ['nom' => trim($d['nom'])]);
+        config::getConnexion()->prepare($sql)->execute($this->parametres($c) + ['nom' => $c->getNom()]);
+        return (int) config::getConnexion()->lastInsertId();
+    }
+
+    // Construit l'objet Culture à partir du formulaire (déjà validé)
+    public static function versObjet(array $d, ?int $id = null, ?string $nom = null): Culture
+    {
+        $nombre = fn($v) => (float) str_replace(',', '.', trim((string) $v));
+        return new Culture(
+            $nom ?? trim($d['nom']), $d['categorie'], array_values($d['sols']), array_values($d['saisons']),
+            array_values($d['regions'] ?? []), $d['besoinEau'], $nombre($d['kc']), $nombre($d['rendement']),
+            (int) $d['dureeJours'], $nombre($d['prixKg']), trim($d['conseil']), $id
+        );
     }
 
     public function deleteCulture(int $id): bool
@@ -100,19 +113,19 @@ class CultureController
         return $req->rowCount() > 0;
     }
 
-    private function parametres(array $d): array
+    private function parametres(Culture $c): array
     {
         return [
-            'cat'     => $d['categorie'],
-            'sols'    => implode(',', $d['sols']),
-            'saisons' => implode(',', $d['saisons']),
-            'regions' => empty($d['regions']) ? '*' : implode(',', $d['regions']),
-            'eau'     => $d['besoinEau'],
-            'kc'      => (float) str_replace(',', '.', $d['kc']),
-            'rdt'     => (float) str_replace(',', '.', $d['rendement']),
-            'duree'   => (int) $d['dureeJours'],
-            'prix'    => (float) str_replace(',', '.', $d['prixKg']),
-            'conseil' => trim($d['conseil']),
+            'cat'     => $c->getCategorie(),
+            'sols'    => $c->getSolsTexte(),
+            'saisons' => $c->getSaisonsTexte(),
+            'regions' => $c->getRegionsTexte(),
+            'eau'     => $c->getBesoinEau(),
+            'kc'      => $c->getKc(),
+            'rdt'     => $c->getRendement(),
+            'duree'   => $c->getDureeJours(),
+            'prix'    => $c->getPrixKg(),
+            'conseil' => $c->getConseil(),
         ];
     }
 

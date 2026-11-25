@@ -48,10 +48,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $erreurs = $cultureC->validateCulture($valeurs, $id);
     if (empty($erreurs)) {
         if ($id) {
-            $cultureC->updateCulture($id, $valeurs);
+            $cultureC->updateCulture(CultureController::versObjet($valeurs, $id, $culture['nom']));
             setFlash('Culture « ' . $culture['nom'] . ' » modifiée.');
         } else {
-            $cultureC->addCulture($valeurs);
+            $cultureC->addCulture(CultureController::versObjet($valeurs));
             setFlash('Culture « ' . $valeurs['nom'] . ' » ajoutée au catalogue.');
         }
         header('Location: listeCultures.php');

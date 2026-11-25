@@ -3,6 +3,7 @@
  * Controller : Dépenses d'un terrain (pour calculer la rentabilité)
  */
 require_once __DIR__ . '/../Config/config.php';
+require_once __DIR__ . '/../Model/Depense.php';
 require_once __DIR__ . '/RecolteController.php';
 
 class DepenseController
@@ -16,15 +17,43 @@ class DepenseController
         return $req->fetchAll();
     }
 
+    // Une dépense SEULEMENT si son terrain appartient à l'utilisateur (sinon false)
+    public function getDepenseOfUser(int $id, int $idUtilisateur)
+    {
+        $req = config::getConnexion()->prepare(
+            "SELECT d.* FROM depense d JOIN terrain t ON t.id = d.idTerrain WHERE d.id = :id AND t.idUtilisateur = :u");
+        $req->execute(['id' => $id, 'u' => $idUtilisateur]);
+        return $req->fetch();
+    }
+
     // ⚠️ Vérifier avant que le terrain appartient à l'utilisateur
-    public function ajouter(int $idTerrain, array $d): void
+    public function ajouter(Depense $d): int
     {
         $sql = "INSERT INTO depense (idTerrain, categorie, montant, dateDepense, description)
                 VALUES (:t, :c, :m, :d, :desc)";
-        config::getConnexion()->prepare($sql)->execute([
-            't' => $idTerrain, 'c' => $d['categorie'], 'm' => (float) str_replace(',', '.', $d['montant']),
-            'd' => $d['dateDepense'], 'desc' => trim($d['description'] ?? '') ?: null,
-        ]);
+        config::getConnexion()->prepare($sql)->execute($this->parametres($d));
+        return (int) config::getConnexion()->lastInsertId();
+    }
+
+    // ⚠️ Vérifier avant (getDepenseOfUser) que la dépense appartient à l'utilisateur
+    public function modifier(Depense $d): void
+    {
+        $sql = "UPDATE depense SET categorie = :c, montant = :m, dateDepense = :d, description = :desc
+                WHERE id = :id AND idTerrain = :t";
+        config::getConnexion()->prepare($sql)->execute($this->parametres($d) + ['id' => $d->getId()]);
+    }
+
+    private function parametres(Depense $d): array
+    {
+        return ['t' => $d->getIdTerrain(), 'c' => $d->getCategorie(), 'm' => $d->getMontant(),
+                'd' => $d->getDateDepense(), 'desc' => $d->getDescription()];
+    }
+
+    // Construit l'objet Depense à partir du formulaire (déjà validé)
+    public static function versObjet(array $d, int $idTerrain, ?int $id = null): Depense
+    {
+        return new Depense($idTerrain, $d['categorie'], (float) str_replace(',', '.', trim($d['montant'])),
+                           $d['dateDepense'], trim($d['description'] ?? '') ?: null, $id);
     }
 
     // Supprime seulement si la dépense est sur un terrain de l'utilisateur
