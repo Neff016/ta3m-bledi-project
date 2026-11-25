@@ -15,7 +15,7 @@ class BadgeController
 
     public function listBadges(): array
     {
-        $sql = "SELECT b.*, (SELECT COUNT(*) FROM utilisateur_badge ub WHERE ub.idBadge = b.id) AS nbAttributions
+        $sql = "SELECT b.*, (SELECT COUNT(*) FROM utilisateur_badge ub WHERE ub.idBadge = b.id AND ub.idUtilisateur IN (SELECT id FROM utilisateur WHERE statut <> 'SUPPRIME')) AS nbAttributions
                 FROM badge b
                 ORDER BY b.points, b.nom";
         return config::getConnexion()->query($sql)->fetchAll();
@@ -93,6 +93,7 @@ class BadgeController
                 FROM utilisateur_badge ub
                 JOIN badge b ON b.id = ub.idBadge
                 JOIN utilisateur u ON u.id = ub.idUtilisateur
+                WHERE u.statut <> 'SUPPRIME'
                 ORDER BY ub.dateAttribution DESC";
         return config::getConnexion()->query($sql)->fetchAll();
     }

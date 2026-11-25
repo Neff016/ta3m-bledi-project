@@ -1,11 +1,10 @@
 <?php
 /*
  * Action : supprimer un utilisateur (Back Office, admin)
- * Fichier COMPLET.
+ * Le compte va dans la corbeille : il peut être restauré avec le bouton « Restaurer ».
  */
 require_once __DIR__ . '/../../Controller/AuthGuard.php';
 require_once __DIR__ . '/../../Controller/UtilisateurController.php';
-require_once __DIR__ . '/../../Controller/UploadHelper.php';
 
 $idAdmin = requireAdmin();
 
@@ -20,8 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         setFlash('Vous ne pouvez pas supprimer votre propre compte.', 'danger');
     } else {
         $utilisateurC->deleteUtilisateur($id);
-        supprimerImage($user['photo'] ?? null, 'profils');
-        setFlash('Compte supprimé. Si cet utilisateur essaie de se connecter, il verra « compte supprimé ».');
+        // Pour afficher le bouton « Annuler » juste après la suppression
+        $_SESSION['annuler_suppression'] = ['id' => $id, 'nom' => $user['prenom'] . ' ' . $user['nom']];
     }
 }
 

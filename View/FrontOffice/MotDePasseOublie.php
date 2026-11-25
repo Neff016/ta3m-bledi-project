@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../Controller/AuthGuard.php';
 require_once __DIR__ . '/../../Controller/UtilisateurController.php';
+require_once __DIR__ . '/../../Controller/MailHelper.php';
 
 $utilisateurC = new UtilisateurController();
 $erreurs      = [];
@@ -15,18 +16,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($erreurs)) {
-        $code = $utilisateurC->creerCodeReinitialisation($email);
-
-        // On passe à la page du code dans tous les cas (on ne révèle pas si l'email existe)
-        $_SESSION['reset_email'] = $email;
-        unset($_SESSION['reset_autorise']);
-
-        // Pas de serveur mail sur XAMPP : le code est gardé en session pour la démonstration.
-        // En production, il serait envoyé par email (fonction mail() / PHPMailer).
-        $_SESSION['reset_code_demo'] = $code;
-
-        header('Location: VerifierCode.php');
-        exit;
+        // Le code est envoyé par email (Gmail SMTP, voir Config/mail.php)
+        $envoi = demanderCodeParEmail($utilisateurC, $email);
+        if ($envoi['ok']) {
+            $_SESSION['reset_email'] = $email;
+            unset($_SESSION['reset_autorise']);
+            header('Location: VerifierCode.php');
+            exit;
+        }
+        $erreurs['email'] = "L'email n'a pas pu être envoyé : " . $envoi['erreur'];
     }
 }
 

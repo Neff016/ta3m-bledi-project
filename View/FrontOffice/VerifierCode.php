@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../Controller/AuthGuard.php';
 require_once __DIR__ . '/../../Controller/UtilisateurController.php';
+require_once __DIR__ . '/../../Controller/MailHelper.php';
 
 // On arrive ici seulement après avoir saisi son email
 if (empty($_SESSION['reset_email'])) {
@@ -11,8 +12,23 @@ if (empty($_SESSION['reset_email'])) {
 $utilisateurC = new UtilisateurController();
 $email        = $_SESSION['reset_email'];
 $erreurs      = [];
+$info         = null;
+const DELAI_RENVOI = 60;   // secondes à attendre avant de redemander un code
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// Bouton « Renvoyer le code »
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'renvoyer') {
+    $attente = DELAI_RENVOI - (time() - ($_SESSION['reset_dernier_envoi'] ?? 0));
+    if ($attente > 0) {
+        $erreurs['renvoi'] = "Patientez encore $attente secondes avant de demander un nouveau code.";
+    } else {
+        $envoi = demanderCodeParEmail($utilisateurC, $email);
+        if ($envoi['ok']) {
+            $info = 'Un nouveau code a été envoyé. L’ancien code ne fonctionne plus.';
+        } else {
+            $erreurs['renvoi'] = "L'email n'a pas pu être envoyé : " . $envoi['erreur'];
+        }
+    }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $code = trim($_POST['code'] ?? '');
     if ($code === '') {
         $erreurs['code'] = 'Le code est obligatoire.';
@@ -23,7 +39,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($resultat['ok']) {
             // Code correct : on autorise le changement de mot de passe pour CE compte
             $_SESSION['reset_autorise'] = $resultat['id'];
-            unset($_SESSION['reset_code_demo']);
             header('Location: ReinitialiserMotDePasse.php');
             exit;
         }
@@ -31,7 +46,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$codeDemo = $_SESSION['reset_code_demo'] ?? null;
+// Email masqué pour l'affichage : yo*******@gmail.com
+[$local, $domaine] = explode('@', $email, 2) + [1 => ''];
+$emailMasque = mb_substr($local, 0, 2) . str_repeat('*', max(mb_strlen($local) - 2, 3)) . '@' . $domaine;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -125,15 +142,19 @@ $codeDemo = $_SESSION['reset_code_demo'] ?? null;
         </div>
 
         <div class="ub-card">
-          <div class="alert alert-success">
-            Si un compte existe avec <strong><?= e($email) ?></strong>, un code à 6 chiffres vient d'être envoyé.
-            Il est valable <?= UtilisateurController::CODE_DUREE_MINUTES ?> minutes.
+          <div class="text-center mb-3">
+            <i class="bi bi-envelope-check ub-icone-mail"></i>
           </div>
-          <?php if ($codeDemo): ?>
-            <div class="alert alert-warning">
-              <strong>Mode démonstration</strong> (pas de serveur mail sur XAMPP) : votre code est
-              <strong class="ub-code-demo"><?= e($codeDemo) ?></strong>
-            </div>
+          <div class="alert alert-success">
+            Si un compte existe avec <strong><?= e($emailMasque) ?></strong>, un code à 6 chiffres vient d'être envoyé
+            par email. Il est valable <?= UtilisateurController::CODE_DUREE_MINUTES ?> minutes.
+            <br><small>Pensez à regarder aussi dans le dossier <strong>Spam</strong>.</small>
+          </div>
+          <?php if ($info): ?>
+            <div class="alert alert-info"><?= e($info) ?></div>
+          <?php endif; ?>
+          <?php if (isset($erreurs['renvoi'])): ?>
+            <div class="alert alert-danger"><?= e($erreurs['renvoi']) ?></div>
           <?php endif; ?>
 
           <form id="formCode" action="" method="POST" novalidate>
@@ -145,9 +166,13 @@ $codeDemo = $_SESSION['reset_code_demo'] ?? null;
               <div class="ub-erreur" id="erreur-code"><?= e($erreurs['code'] ?? '') ?></div>
             </div>
             <button type="submit" class="ub-btn">Vérifier le code</button>
-            <p class="text-center mt-3 mb-0">
-              Pas reçu le code ? <a href="MotDePasseOublie.php">Recevoir un nouveau code</a>
-            </p>
+          </form>
+          <form action="" method="POST" class="text-center mt-3 mb-0">
+            <?= champCsrf() ?>
+            <input type="hidden" name="action" value="renvoyer">
+            Pas reçu le code ?
+            <button type="submit" class="btn btn-link p-0 align-baseline ub-lien-renvoi">Renvoyer le code</button>
+            · <a href="MotDePasseOublie.php">Changer d'email</a>
           </form>
         </div>
 

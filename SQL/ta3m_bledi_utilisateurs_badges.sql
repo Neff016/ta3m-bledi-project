@@ -29,7 +29,9 @@ ALTER TABLE utilisateur
   ADD COLUMN IF NOT EXISTS resetToken VARCHAR(64) NULL,
   ADD COLUMN IF NOT EXISTS resetExpiration DATETIME NULL,
   ADD COLUMN IF NOT EXISTS resetTentatives INT NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS sessionToken VARCHAR(64) NULL;
+  ADD COLUMN IF NOT EXISTS sessionToken VARCHAR(64) NULL,
+  ADD COLUMN IF NOT EXISTS derniereConnexion DATETIME NULL,
+  ADD COLUMN IF NOT EXISTS dateSuppression DATETIME NULL;
 
 -- Comptes de test (mots de passe hachés avec password_hash)
 --   admin@taambledi.tn  /  Admin@2026   (ADMIN)

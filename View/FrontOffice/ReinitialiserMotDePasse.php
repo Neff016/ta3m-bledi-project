@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     );
     if (empty($erreurs)) {
         $utilisateurC->updateMotDePasse($idUtilisateur, $_POST['nouveauMdp']);  // efface aussi le code
-        unset($_SESSION['reset_autorise'], $_SESSION['reset_email'], $_SESSION['reset_code_demo']);
+        unset($_SESSION['reset_autorise'], $_SESSION['reset_email'], $_SESSION['reset_dernier_envoi']);
         setFlash('Mot de passe changé. Vous pouvez vous connecter.');
         header('Location: connexion.php');
         exit;

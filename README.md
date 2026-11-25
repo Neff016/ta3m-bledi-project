@@ -87,6 +87,23 @@ Si le dossier du projet n'a pas le nom `ta3m-bledi-project`, modifier aussi `LOG
 | ahmed@taambledi.tn | Ahmed@2026 | Agriculteur |
 | salma@taambledi.tn | Salma@2026 | Agriculteur |
 
+## Page profil
+
+- En-tête avec photo (ou initiales), rôle, statut, date d'inscription et contact
+- Chiffres clés : terrains, superficie totale, récoltes, badges et points
+- Barre de **complétion du profil** (photo, téléphone, 1er terrain, 1re récolte, 1er badge)
+- Onglets : **Aperçu** (derniers badges et récoltes), **Modifier le profil** (aperçu de la photo avant envoi, retirer la photo), **Sécurité** (changement du mot de passe avec indicateur de force, date de la connexion précédente), **Zone sensible** (supprimer son compte avec mot de passe + mot « SUPPRIMER »)
+
+## Envoi des emails (mot de passe oublié)
+
+Le code est envoyé avec Gmail (SMTP, sans bibliothèque externe : `Controller/MailHelper.php`).
+
+1. Activez la validation en 2 étapes sur votre compte Google.
+2. Créez un **mot de passe d'application** : https://myaccount.google.com/apppasswords
+3. Copiez `Config/mail.example.php` en `Config/mail.php` et remplissez l'adresse Gmail et le mot de passe d'application.
+
+`Config/mail.php` contient un secret : il est dans `.gitignore` et ne doit jamais être envoyé sur GitHub.
+
 ## Sécurité
 
 - Mots de passe hachés (`password_hash` / `password_verify`)
@@ -96,8 +113,8 @@ Si le dossier du projet n'a pas le nom `ta3m-bledi-project`, modifier aussi `LOG
 - **Session unique** : un jeton de session est enregistré (haché) dans la base ; si le compte s'ouvre sur un autre navigateur, l'ancienne session est fermée automatiquement (« Session incorrecte »)
 - **Déconnexion automatique** après 30 minutes d'inactivité, ou si le compte est bloqué ou supprimé
 - **Jeton CSRF** dans chaque formulaire POST, vérifié automatiquement : sans jeton valide, la requête est refusée (403)
-- **Compte supprimé** par l'admin : ses données sont effacées et il voit « Votre compte a été supprimé » s'il essaie de se connecter
-- **Mot de passe oublié par code** à 6 chiffres (haché, valable 15 min, 5 essais maximum)
+- **Compte supprimé** par l'admin : il ne peut plus se connecter (« Ce compte a été supprimé ») et ses données sont cachées ; le compte va dans la **corbeille** et l'admin peut le **restaurer** (bouton « Annuler la suppression » ou « Restaurer »)
+- **Mot de passe oublié par code** à 6 chiffres **envoyé par email** (Gmail SMTP) : haché en base, valable 15 min, 5 essais maximum, renvoi possible après 60 s
 - Un agriculteur ne voit et ne modifie que ses propres terrains et récoltes
 - Suppressions uniquement en POST avec confirmation
 - Upload d'images : vérification du vrai type de fichier, taille limitée, nom aléatoire

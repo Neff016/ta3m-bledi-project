@@ -149,31 +149,47 @@ class UtilisateurController
      *  Ses données (terrains, récoltes, badges, photo, mot de passe) sont effacées.
      * ========================================================= */
 
+    // Suppression "corbeille" : le compte est désactivé mais ses données sont gardées,
+    // pour que l'administrateur puisse le restaurer avec le bouton « Restaurer ».
     public function deleteUtilisateur(int $id): bool
     {
-        $pdo = config::getConnexion();
-        $pdo->beginTransaction();
-        try {
-            // Données liées au compte (les récoltes suivent les terrains : ON DELETE CASCADE)
-            $pdo->prepare("DELETE FROM terrain WHERE idUtilisateur = :id")->execute(['id' => $id]);
-            $pdo->prepare("DELETE FROM utilisateur_badge WHERE idUtilisateur = :id")->execute(['id' => $id]);
+        $req = config::getConnexion()->prepare(
+            "UPDATE utilisateur
+             SET statut = 'SUPPRIME', dateSuppression = NOW(), sessionToken = NULL,
+                 resetToken = NULL, resetExpiration = NULL, resetTentatives = 0
+             WHERE id = :id AND statut <> 'SUPPRIME'"
+        );
+        $req->execute(['id' => $id]);
+        return $req->rowCount() > 0;
+    }
 
-            // Compte marqué supprimé : plus de mot de passe valide, plus de session
-            $req = $pdo->prepare(
-                "UPDATE utilisateur
-                 SET statut = 'SUPPRIME', motDePasse = '', photo = NULL, sessionToken = NULL,
-                     resetToken = NULL, resetExpiration = NULL, resetTentatives = 0
-                 WHERE id = :id AND statut <> 'SUPPRIME'"
-            );
-            $req->execute(['id' => $id]);
-            $ok = $req->rowCount() > 0;
+    // Restaurer un compte supprimé : il redevient actif avec toutes ses données
+    public function restaurerUtilisateur(int $id): bool
+    {
+        $req = config::getConnexion()->prepare(
+            "UPDATE utilisateur SET statut = 'ACTIF', dateSuppression = NULL
+             WHERE id = :id AND statut = 'SUPPRIME'"
+        );
+        $req->execute(['id' => $id]);
+        return $req->rowCount() > 0;
+    }
 
-            $pdo->commit();
-            return $ok;
-        } catch (Throwable $ex) {
-            $pdo->rollBack();
-            throw $ex;
-        }
+    // Liste des comptes supprimés (corbeille du Back Office)
+    public function listUtilisateursSupprimes(): array
+    {
+        return config::getConnexion()->query(
+            "SELECT id, nom, prenom, email, role, dateSuppression
+             FROM utilisateur WHERE statut = 'SUPPRIME'
+             ORDER BY dateSuppression DESC"
+        )->fetchAll();
+    }
+
+    // Un compte supprimé (pour le restaurer)
+    public function getUtilisateurSupprime(int $id)
+    {
+        $req = config::getConnexion()->prepare("SELECT * FROM utilisateur WHERE id = :id AND statut = 'SUPPRIME'");
+        $req->execute(['id' => $id]);
+        return $req->fetch();
     }
 
     /* =========================================================
@@ -185,7 +201,7 @@ class UtilisateurController
     {
         $user = $this->getByEmail($email);
         if ($user && $user['statut'] === 'SUPPRIME') {
-            return ['ok' => false, 'erreur' => "Ce compte a été supprimé par l'administrateur."];
+            return ['ok' => false, 'erreur' => 'Ce compte a été supprimé.'];
         }
         // Même message si l'email n'existe pas ou si le mot de passe est faux (sécurité)
         if (!$user || !password_verify($motDePasse, $user['motDePasse'])) {
@@ -350,6 +366,77 @@ class UtilisateurController
             $erreurs['statut'] = 'Veuillez choisir un statut.';
         }
         return $erreurs;
+    }
+
+    /* =========================================================
+     *  PAGE PROFIL
+     * ========================================================= */
+
+    // Date de la connexion actuelle (la précédente est gardée en session pour l'afficher)
+    public function enregistrerConnexion(int $id): void
+    {
+        $req = config::getConnexion()->prepare("UPDATE utilisateur SET derniereConnexion = NOW() WHERE id = :id");
+        $req->execute(['id' => $id]);
+    }
+
+    // Chiffres affichés en haut du profil
+    public function statistiquesProfil(int $id): array
+    {
+        $pdo = config::getConnexion();
+
+        $req = $pdo->prepare("SELECT COUNT(*) AS nb, COALESCE(SUM(superficie), 0) AS surface
+                              FROM terrain WHERE idUtilisateur = :id");
+        $req->execute(['id' => $id]);
+        $terrains = $req->fetch();
+
+        $req = $pdo->prepare("SELECT COUNT(*) FROM recolte r
+                              JOIN terrain t ON t.id = r.idTerrain WHERE t.idUtilisateur = :id");
+        $req->execute(['id' => $id]);
+        $nbRecoltes = (int) $req->fetchColumn();
+
+        $req = $pdo->prepare("SELECT COUNT(*) AS nb, COALESCE(SUM(b.points), 0) AS points
+                              FROM utilisateur_badge ub JOIN badge b ON b.id = ub.idBadge
+                              WHERE ub.idUtilisateur = :id");
+        $req->execute(['id' => $id]);
+        $badges = $req->fetch();
+
+        return [
+            'terrains'   => (int) $terrains['nb'],
+            'superficie' => (float) $terrains['surface'],
+            'recoltes'   => $nbRecoltes,
+            'badges'     => (int) $badges['nb'],
+            'points'     => (int) $badges['points'],
+        ];
+    }
+
+    public function badgesRecents(int $id, int $limite = 3): array
+    {
+        $req = config::getConnexion()->prepare(
+            "SELECT b.nom, b.points, b.icone, ub.dateAttribution
+             FROM utilisateur_badge ub JOIN badge b ON b.id = ub.idBadge
+             WHERE ub.idUtilisateur = :id
+             ORDER BY ub.dateAttribution DESC
+             LIMIT :limite"
+        );
+        $req->bindValue('id', $id, PDO::PARAM_INT);
+        $req->bindValue('limite', $limite, PDO::PARAM_INT);
+        $req->execute();
+        return $req->fetchAll();
+    }
+
+    public function recoltesRecentes(int $id, int $limite = 4): array
+    {
+        $req = config::getConnexion()->prepare(
+            "SELECT r.culture, r.dateRecolte, r.quantite, r.unite, t.nom AS terrainNom
+             FROM recolte r JOIN terrain t ON t.id = r.idTerrain
+             WHERE t.idUtilisateur = :id
+             ORDER BY r.dateRecolte DESC
+             LIMIT :limite"
+        );
+        $req->bindValue('id', $id, PDO::PARAM_INT);
+        $req->bindValue('limite', $limite, PDO::PARAM_INT);
+        $req->execute();
+        return $req->fetchAll();
     }
 
     /* =========================================================

@@ -40,10 +40,11 @@ class TerrainController
                        CONCAT(u.prenom, ' ', u.nom) AS proprietaire,
                        (SELECT COUNT(*) FROM recolte r WHERE r.idTerrain = t.id) AS nbRecoltes
                 FROM terrain t
-                LEFT JOIN utilisateur u ON u.id = t.idUtilisateur";
+                JOIN utilisateur u ON u.id = t.idUtilisateur
+                WHERE u.statut <> 'SUPPRIME'";   // comptes supprimés : données cachées
         $params = [];
         if ($recherche !== '') {
-            $sql .= " WHERE t.nom LIKE :q1 OR t.localisation LIKE :q2 OR u.nom LIKE :q3 OR u.prenom LIKE :q4";
+            $sql .= " AND (t.nom LIKE :q1 OR t.localisation LIKE :q2 OR u.nom LIKE :q3 OR u.prenom LIKE :q4)";
             $like = '%' . $recherche . '%';
             $params = ['q1' => $like, 'q2' => $like, 'q3' => $like, 'q4' => $like];
         }
@@ -163,23 +164,24 @@ class TerrainController
 
     public function countTerrains(): int
     {
-        return (int) config::getConnexion()->query("SELECT COUNT(*) FROM terrain")->fetchColumn();
+        return (int) config::getConnexion()->query("SELECT COUNT(*) FROM terrain WHERE idUtilisateur IN (SELECT id FROM utilisateur WHERE statut <> 'SUPPRIME')")->fetchColumn();
     }
 
     public function sumSuperficie(): float
     {
-        return (float) config::getConnexion()->query("SELECT COALESCE(SUM(superficie), 0) FROM terrain")->fetchColumn();
+        return (float) config::getConnexion()->query("SELECT COALESCE(SUM(superficie), 0) FROM terrain WHERE idUtilisateur IN (SELECT id FROM utilisateur WHERE statut <> 'SUPPRIME')")->fetchColumn();
     }
 
     public function countAgriculteurs(): int
     {
-        return (int) config::getConnexion()->query("SELECT COUNT(DISTINCT idUtilisateur) FROM terrain")->fetchColumn();
+        return (int) config::getConnexion()->query("SELECT COUNT(DISTINCT idUtilisateur) FROM terrain WHERE idUtilisateur IN (SELECT id FROM utilisateur WHERE statut <> 'SUPPRIME')")->fetchColumn();
     }
 
     public function terrainsParWilaya(): array
     {
         $sql = "SELECT localisation, COUNT(*) AS nb, SUM(superficie) AS superficie
                 FROM terrain
+                WHERE idUtilisateur IN (SELECT id FROM utilisateur WHERE statut <> 'SUPPRIME')
                 GROUP BY localisation
                 ORDER BY nb DESC, localisation";
         return config::getConnexion()->query($sql)->fetchAll();

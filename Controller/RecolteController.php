@@ -43,10 +43,11 @@ class RecolteController
         $sql = "SELECT r.*, t.nom AS terrainNom, CONCAT(u.prenom, ' ', u.nom) AS proprietaire
                 FROM recolte r
                 JOIN terrain t ON t.id = r.idTerrain
-                LEFT JOIN utilisateur u ON u.id = t.idUtilisateur";
+                JOIN utilisateur u ON u.id = t.idUtilisateur
+                WHERE u.statut <> 'SUPPRIME'";   // comptes supprimés : données cachées
         $params = [];
         if ($recherche !== '') {
-            $sql .= " WHERE r.culture LIKE :q1 OR t.nom LIKE :q2 OR u.nom LIKE :q3 OR u.prenom LIKE :q4";
+            $sql .= " AND (r.culture LIKE :q1 OR t.nom LIKE :q2 OR u.nom LIKE :q3 OR u.prenom LIKE :q4)";
             $like = '%' . $recherche . '%';
             $params = ['q1' => $like, 'q2' => $like, 'q3' => $like, 'q4' => $like];
         }
@@ -202,7 +203,7 @@ class RecolteController
 
     public function countRecoltes(): int
     {
-        return (int) config::getConnexion()->query("SELECT COUNT(*) FROM recolte")->fetchColumn();
+        return (int) config::getConnexion()->query("SELECT COUNT(*) FROM recolte r JOIN terrain t ON t.id = r.idTerrain WHERE t.idUtilisateur IN (SELECT id FROM utilisateur WHERE statut <> 'SUPPRIME')")->fetchColumn();
     }
 
     public function dernieresRecoltes(int $limite = 5): array
@@ -210,6 +211,7 @@ class RecolteController
         $sql = "SELECT r.culture, r.dateRecolte, t.nom AS terrainNom
                 FROM recolte r
                 JOIN terrain t ON t.id = r.idTerrain
+                WHERE t.idUtilisateur IN (SELECT id FROM utilisateur WHERE statut <> 'SUPPRIME')
                 ORDER BY r.dateRecolte DESC
                 LIMIT :limite";
         $req = config::getConnexion()->prepare($sql);

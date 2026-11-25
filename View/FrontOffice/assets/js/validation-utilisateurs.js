@@ -151,3 +151,79 @@ document.addEventListener('DOMContentLoaded', function () {
     return verifierMotDePasse('nouveauMdp', 'confirmMdp');
   });
 });
+
+/* =====================================================================
+ *  Page profil : suppression du compte, aperçu photo, force du mot de passe
+ * ===================================================================== */
+document.addEventListener('DOMContentLoaded', function () {
+  function erreur(id, message) {
+    const champ = document.getElementById(id);
+    const zone  = document.getElementById('erreur-' + id);
+    if (zone) zone.textContent = message;
+    if (champ) champ.classList.toggle('is-invalid', message !== '');
+    return message === '';
+  }
+
+  // 1) Supprimer mon compte : mot de passe + mot "SUPPRIMER"
+  const formSupp = document.getElementById('formSuppression');
+  if (formSupp) {
+    formSupp.addEventListener('submit', function (event) {
+      const a = erreur('mdpSuppression',
+        document.getElementById('mdpSuppression').value === '' ? 'Entrez votre mot de passe pour confirmer.' : '');
+      const b = erreur('confirmation',
+        document.getElementById('confirmation').value.trim() !== 'SUPPRIMER' ? 'Tapez SUPPRIMER en majuscules pour confirmer.' : '');
+      if (!a || !b || !confirm('Dernière confirmation : supprimer votre compte ?')) {
+        event.preventDefault();
+      }
+    });
+  }
+
+  // 2) Aperçu de la photo choisie (avant l'envoi)
+  const inputPhoto = document.getElementById('photo');
+  const apercu     = document.getElementById('apercuPhoto');
+  if (inputPhoto && apercu) {
+    inputPhoto.addEventListener('change', function () {
+      const fichier = inputPhoto.files[0];
+      if (!fichier) return;
+      if (!/^image\/(jpeg|png|webp|gif)$/.test(fichier.type)) {
+        erreur('photo', 'Choisissez une image JPG, PNG, WEBP ou GIF.');
+        return;
+      }
+      if (fichier.size > 2 * 1024 * 1024) {
+        erreur('photo', "L'image ne doit pas dépasser 2 Mo.");
+        return;
+      }
+      erreur('photo', '');
+      apercu.src = URL.createObjectURL(fichier);
+      apercu.classList.remove('d-none');
+      const initiales = document.getElementById('apercuInitiales');
+      if (initiales) initiales.classList.add('d-none');
+    });
+  }
+
+  // 3) Indicateur de force du nouveau mot de passe
+  const mdp   = document.getElementById('nouveauMdp');
+  const barre = document.getElementById('forceBarre');
+  const texte = document.getElementById('forceTexte');
+  if (mdp && barre && texte) {
+    mdp.addEventListener('input', function () {
+      const v = mdp.value;
+      let score = 0;
+      if (v.length >= 8) score++;
+      if (/[A-Za-z]/.test(v) && /\d/.test(v)) score++;
+      if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
+      if (/[^A-Za-z0-9]/.test(v) || v.length >= 12) score++;
+      const niveaux = [
+        ['0%', '', '8 caractères minimum, une lettre et un chiffre.'],
+        ['25%', '#dc3545', 'Faible'],
+        ['50%', '#fd7e14', 'Moyen'],
+        ['75%', '#20c997', 'Bon'],
+        ['100%', '#198754', 'Excellent'],
+      ];
+      const n = v === '' ? niveaux[0] : niveaux[Math.max(score, 1)];
+      barre.style.width = n[0];
+      barre.style.background = n[1];
+      texte.textContent = n[2];
+    });
+  }
+});

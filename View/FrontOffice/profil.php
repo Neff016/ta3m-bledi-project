@@ -5,16 +5,18 @@ require_once __DIR__ . '/../../Controller/UploadHelper.php';
 
 $idUtilisateur = requireLogin();
 $utilisateurC  = new UtilisateurController();
-$user          = $utilisateurC->getUtilisateur($idUtilisateur);
+$user          = $utilisateurC->getUtilisateurActif($idUtilisateur);
 
 if (!$user) {               // compte supprimé entre-temps
     header('Location: deconnexion.php');
     exit;
 }
 
-$erreurs    = [];   // formulaire "informations"
-$erreursMdp = [];   // formulaire "mot de passe"
-$valeurs    = [
+$erreurs     = [];     // onglet "Modifier le profil"
+$erreursMdp  = [];     // onglet "Sécurité"
+$erreursSupp = [];     // onglet "Zone sensible"
+$onglet      = $_GET['onglet'] ?? 'apercu';   // onglet ouvert
+$valeurs     = [
     'nom'       => $user['nom'],
     'prenom'    => $user['prenom'],
     'email'     => $user['email'],
@@ -26,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     /* ---------- 1) Modifier mes informations ---------- */
     if ($action === 'infos') {
+        $onglet  = 'infos';
         $valeurs = [
             'nom'       => trim($_POST['nom'] ?? ''),
             'prenom'    => trim($_POST['prenom'] ?? ''),
@@ -57,13 +60,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['nom']    = $valeurs['nom'];
             $_SESSION['prenom'] = $valeurs['prenom'];
             setFlash('Profil mis à jour avec succès.');
-            header('Location: profil.php');
+            header('Location: profil.php?onglet=infos');
             exit;
         }
     }
 
-    /* ---------- 2) Changer mon mot de passe ---------- */
+    /* ---------- 2) Retirer ma photo ---------- */
+    if ($action === 'supprimerPhoto') {
+        supprimerImage($user['photo'], 'profils');
+        $utilisateurC->updatePhoto($idUtilisateur, null);
+        setFlash('Photo de profil retirée.');
+        header('Location: profil.php?onglet=infos');
+        exit;
+    }
+
+    /* ---------- 3) Changer mon mot de passe ---------- */
     if ($action === 'motdepasse') {
+        $onglet = 'securite';
         $ancien = $_POST['ancienMdp'] ?? '';
         if ($ancien === '') {
             $erreursMdp['ancienMdp'] = "L'ancien mot de passe est obligatoire.";
@@ -77,14 +90,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($erreursMdp)) {
             $utilisateurC->updateMotDePasse($idUtilisateur, $_POST['nouveauMdp']);
             setFlash('Mot de passe modifié avec succès.');
-            header('Location: profil.php');
+            header('Location: profil.php?onglet=securite');
+            exit;
+        }
+    }
+
+    /* ---------- 4) Supprimer mon compte ---------- */
+    if ($action === 'supprimerCompte') {
+        $onglet = 'danger';
+        $mdp    = $_POST['mdpSuppression'] ?? '';
+        if ($mdp === '') {
+            $erreursSupp['mdpSuppression'] = 'Entrez votre mot de passe pour confirmer.';
+        } elseif (!password_verify($mdp, $user['motDePasse'])) {
+            $erreursSupp['mdpSuppression'] = 'Mot de passe incorrect.';
+        }
+        if (($_POST['confirmation'] ?? '') !== 'SUPPRIMER') {
+            $erreursSupp['confirmation'] = 'Tapez SUPPRIMER en majuscules pour confirmer.';
+        }
+        if ($user['role'] === 'ADMIN') {
+            $erreursSupp['confirmation'] = "Un compte administrateur ne peut pas se supprimer lui-même.";
+        }
+
+        if (empty($erreursSupp)) {
+            $utilisateurC->deleteUtilisateur($idUtilisateur);
+            $_SESSION = [];
+            session_regenerate_id(true);
+            setFlash('Votre compte a été supprimé. Merci d’avoir utilisé Taam Bledi.', 'info');
+            header('Location: connexion.php');
             exit;
         }
     }
 }
 
-$flash = getFlash();
-$initiales = mb_strtoupper(mb_substr($user['prenom'], 0, 1) . mb_substr($user['nom'], 0, 1));
+if (!in_array($onglet, ['apercu', 'infos', 'securite', 'danger'], true)) {
+    $onglet = 'apercu';
+}
+
+/* ---------- Données affichées ---------- */
+$flash      = getFlash();
+$stats      = $utilisateurC->statistiquesProfil($idUtilisateur);
+$badges     = $utilisateurC->badgesRecents($idUtilisateur, 3);
+$recoltes   = $utilisateurC->recoltesRecentes($idUtilisateur, 4);
+$initiales  = mb_strtoupper(mb_substr($user['prenom'], 0, 1) . mb_substr($user['nom'], 0, 1));
+$precedente = $_SESSION['connexion_precedente'] ?? null;
+
+$mois = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août',
+         'septembre', 'octobre', 'novembre', 'décembre'];
+$dateFr = fn(?string $d) => $d ? date('j', strtotime($d)) . ' ' . $mois[(int) date('n', strtotime($d)) - 1] . ' ' . date('Y', strtotime($d)) : '';
+
+// Complétion du profil
+$etapes = [
+    ['Photo de profil',       !empty($user['photo'])],
+    ['Numéro de téléphone',   !empty($user['telephone'])],
+    ['Premier terrain',       $stats['terrains'] > 0],
+    ['Première récolte',      $stats['recoltes'] > 0],
+    ['Premier badge obtenu',  $stats['badges'] > 0],
+];
+$faites     = count(array_filter($etapes, fn($e) => $e[1]));
+$completion = (int) round($faites / count($etapes) * 100);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -172,101 +235,284 @@ $initiales = mb_strtoupper(mb_substr($user['prenom'], 0, 1) . mb_substr($user['n
     <section class="ub-page">
       <div class="container">
 
-        <div class="ub-hero">
-          <span class="ub-hero-label">Espace utilisateur</span>
-          <h1>Mon profil</h1>
+        <?php if ($flash): ?>
+          <div class="alert alert-<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
+        <?php endif; ?>
+
+        <!-- ===== En-tête du profil ===== -->
+        <div class="pf-entete">
+          <div class="pf-couverture"></div>
+          <div class="pf-identite">
+            <div class="pf-avatar-zone">
+              <?php if (!empty($user['photo'])): ?>
+                <img src="assets/img/uploads/profils/<?= e($user['photo']) ?>" alt="Photo de profil" class="pf-avatar">
+              <?php else: ?>
+                <div class="pf-avatar pf-initiales"><?= e($initiales) ?></div>
+              <?php endif; ?>
+            </div>
+            <div class="pf-infos">
+              <h1><?= e($user['prenom'] . ' ' . $user['nom']) ?></h1>
+              <div class="pf-etiquettes">
+                <span class="pf-badge-role"><i class="bi bi-person-badge"></i> <?= e(UtilisateurController::ROLES[$user['role']] ?? $user['role']) ?></span>
+                <span class="pf-badge-statut"><i class="bi bi-patch-check-fill"></i> Compte actif</span>
+                <span class="pf-membre"><i class="bi bi-calendar3"></i> Membre depuis <?= e($dateFr($user['dateInscription'])) ?></span>
+              </div>
+              <div class="pf-contact">
+                <span><i class="bi bi-envelope"></i> <?= e($user['email']) ?></span>
+                <?php if (!empty($user['telephone'])): ?>
+                  <span><i class="bi bi-telephone"></i> <?= e($user['telephone']) ?></span>
+                <?php endif; ?>
+              </div>
+            </div>
+            <div class="pf-actions">
+              <a href="profil.php?onglet=infos" class="ub-btn pf-btn"><i class="bi bi-pencil"></i> Modifier</a>
+              <a href="deconnexion.php" class="pf-btn-contour"><i class="bi bi-box-arrow-right"></i> Déconnexion</a>
+            </div>
+          </div>
         </div>
 
-        <div class="ub-card ub-card-large">
-          <?php if ($flash): ?>
-            <div class="alert alert-<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
-          <?php endif; ?>
+        <!-- ===== Chiffres ===== -->
+        <div class="row g-3 my-4">
+          <div class="col-6 col-lg-3">
+            <div class="pf-stat"><i class="bi bi-geo-alt"></i><strong><?= $stats['terrains'] ?></strong><span>Terrain<?= $stats['terrains'] > 1 ? 's' : '' ?></span></div>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="pf-stat"><i class="bi bi-rulers"></i><strong><?= e(number_format($stats['superficie'], 1, ',', ' ')) ?> ha</strong><span>Superficie totale</span></div>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="pf-stat"><i class="bi bi-basket"></i><strong><?= $stats['recoltes'] ?></strong><span>Récolte<?= $stats['recoltes'] > 1 ? 's' : '' ?></span></div>
+          </div>
+          <div class="col-6 col-lg-3">
+            <div class="pf-stat"><i class="bi bi-award"></i><strong><?= $stats['badges'] ?> · <?= $stats['points'] ?> pts</strong><span>Badges</span></div>
+          </div>
+        </div>
 
-          <div class="row">
-            <!-- Colonne gauche : photo -->
-            <div class="col-md-4 text-center mb-4">
-              <?php if (!empty($user['photo'])): ?>
-                <img src="assets/img/uploads/profils/<?= e($user['photo']) ?>" alt="Photo de profil" class="ub-profil-photo mb-3">
-              <?php else: ?>
-                <div class="ub-avatar mb-3"><?= e($initiales) ?></div>
-              <?php endif; ?>
-              <h3><?= e($user['prenom'] . ' ' . $user['nom']) ?></h3>
-              <p class="text-muted"><?= e(UtilisateurController::ROLES[$user['role']] ?? $user['role']) ?></p>
-              <a href="mesBadges.php" class="btn btn-outline-success">Voir mes badges</a>
-              <p class="mt-3 mb-0"><a href="deconnexion.php">Se déconnecter</a></p>
+        <!-- ===== Complétion du profil ===== -->
+        <?php if ($completion < 100): ?>
+          <div class="pf-carte mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h5 class="mb-0">Complétez votre profil</h5>
+              <strong class="pf-pourcentage"><?= $completion ?> %</strong>
+            </div>
+            <div class="progress pf-progression" role="progressbar" aria-valuenow="<?= $completion ?>" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-bar" style="width: <?= $completion ?>%"></div>
+            </div>
+            <ul class="pf-etapes">
+              <?php foreach ($etapes as [$libelle, $fait]): ?>
+                <li class="<?= $fait ? 'fait' : '' ?>"><i class="bi <?= $fait ? 'bi-check-circle-fill' : 'bi-circle' ?>"></i> <?= e($libelle) ?></li>
+              <?php endforeach; ?>
+            </ul>
+          </div>
+        <?php endif; ?>
+
+        <!-- ===== Onglets ===== -->
+        <div class="pf-carte">
+          <ul class="nav pf-onglets" role="tablist">
+            <?php foreach (['apercu' => ['bi-grid', 'Aperçu'], 'infos' => ['bi-person', 'Modifier le profil'],
+                            'securite' => ['bi-shield-lock', 'Sécurité'], 'danger' => ['bi-exclamation-triangle', 'Zone sensible']] as $id => [$icone, $titre]): ?>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link <?= $onglet === $id ? 'active' : '' ?> <?= $id === 'danger' ? 'pf-onglet-danger' : '' ?>"
+                        data-bs-toggle="tab" data-bs-target="#onglet-<?= $id ?>" type="button" role="tab">
+                  <i class="bi <?= $icone ?>"></i> <?= $titre ?>
+                </button>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+
+          <div class="tab-content pt-4">
+
+            <!-- Aperçu -->
+            <div class="tab-pane fade <?= $onglet === 'apercu' ? 'show active' : '' ?>" id="onglet-apercu" role="tabpanel">
+              <div class="row g-4">
+                <div class="col-lg-6">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Derniers badges</h5>
+                    <a href="mesBadges.php" class="pf-lien">Tout voir</a>
+                  </div>
+                  <?php if (empty($badges)): ?>
+                    <p class="pf-vide"><i class="bi bi-award"></i> Aucun badge pour l'instant. Ajoutez vos terrains et récoltes pour en gagner.</p>
+                  <?php else: ?>
+                    <?php foreach ($badges as $b): ?>
+                      <div class="pf-ligne">
+                        <?php if (!empty($b['icone'])): ?>
+                          <img src="assets/img/uploads/badges/<?= e($b['icone']) ?>" alt="" class="pf-ligne-icone">
+                        <?php else: ?>
+                          <span class="pf-ligne-icone pf-ligne-icone-defaut"><i class="bi bi-award-fill"></i></span>
+                        <?php endif; ?>
+                        <div class="flex-grow-1">
+                          <strong><?= e($b['nom']) ?></strong>
+                          <small class="d-block text-muted">Obtenu le <?= e($dateFr($b['dateAttribution'])) ?></small>
+                        </div>
+                        <span class="ub-points"><?= e($b['points']) ?> pts</span>
+                      </div>
+                    <?php endforeach; ?>
+                  <?php endif; ?>
+                </div>
+                <div class="col-lg-6">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Dernières récoltes</h5>
+                    <a href="mesRecoltes.php" class="pf-lien">Tout voir</a>
+                  </div>
+                  <?php if (empty($recoltes)): ?>
+                    <p class="pf-vide"><i class="bi bi-basket"></i> Aucune récolte enregistrée. <a href="ajouterRecolte.php">Ajouter une récolte</a></p>
+                  <?php else: ?>
+                    <?php foreach ($recoltes as $r): ?>
+                      <div class="pf-ligne">
+                        <span class="pf-ligne-icone pf-ligne-icone-defaut"><i class="bi bi-flower1"></i></span>
+                        <div class="flex-grow-1">
+                          <strong><?= e($r['culture']) ?></strong>
+                          <small class="d-block text-muted"><?= e($r['terrainNom']) ?> · <?= e($dateFr($r['dateRecolte'])) ?></small>
+                        </div>
+                        <span class="pf-quantite"><?= e($r['quantite']) ?> <?= e($r['unite']) ?></span>
+                      </div>
+                    <?php endforeach; ?>
+                  <?php endif; ?>
+                </div>
+              </div>
             </div>
 
-            <!-- Colonne droite : formulaires -->
-            <div class="col-md-8">
-              <h4>Modifier mes informations</h4>
-              <form id="formProfil" action="" method="POST" enctype="multipart/form-data" novalidate>
-                <?= champCsrf() ?>
-                <input type="hidden" name="action" value="infos">
-                <div class="row">
-                  <div class="col-md-6 mb-3">
-                    <label for="nom" class="form-label">Nom</label>
-                    <input type="text" class="form-control <?= isset($erreurs['nom']) ? 'is-invalid' : '' ?>"
-                           id="nom" name="nom" value="<?= e($valeurs['nom']) ?>">
-                    <div class="ub-erreur" id="erreur-nom"><?= e($erreurs['nom'] ?? '') ?></div>
+            <!-- Modifier le profil -->
+            <div class="tab-pane fade <?= $onglet === 'infos' ? 'show active' : '' ?>" id="onglet-infos" role="tabpanel">
+              <div class="row g-4">
+                <div class="col-lg-4 text-center">
+                  <div class="pf-apercu-photo mb-3">
+                    <?php if (!empty($user['photo'])): ?>
+                      <img id="apercuPhoto" src="assets/img/uploads/profils/<?= e($user['photo']) ?>" alt="Aperçu" class="pf-avatar">
+                    <?php else: ?>
+                      <img id="apercuPhoto" src="" alt="Aperçu" class="pf-avatar d-none">
+                      <div id="apercuInitiales" class="pf-avatar pf-initiales"><?= e($initiales) ?></div>
+                    <?php endif; ?>
                   </div>
-                  <div class="col-md-6 mb-3">
-                    <label for="prenom" class="form-label">Prénom</label>
-                    <input type="text" class="form-control <?= isset($erreurs['prenom']) ? 'is-invalid' : '' ?>"
-                           id="prenom" name="prenom" value="<?= e($valeurs['prenom']) ?>">
-                    <div class="ub-erreur" id="erreur-prenom"><?= e($erreurs['prenom'] ?? '') ?></div>
-                  </div>
+                  <?php if (!empty($user['photo'])): ?>
+                    <form action="" method="POST" onsubmit="return confirm('Retirer votre photo de profil ?');">
+                      <?= champCsrf() ?>
+                      <input type="hidden" name="action" value="supprimerPhoto">
+                      <button type="submit" class="pf-btn-contour pf-btn-petit"><i class="bi bi-trash"></i> Retirer la photo</button>
+                    </form>
+                  <?php endif; ?>
                 </div>
-                <div class="mb-3">
-                  <label for="email" class="form-label">Email</label>
-                  <input type="text" class="form-control <?= isset($erreurs['email']) ? 'is-invalid' : '' ?>"
-                         id="email" name="email" value="<?= e($valeurs['email']) ?>">
-                  <div class="ub-erreur" id="erreur-email"><?= e($erreurs['email'] ?? '') ?></div>
+                <div class="col-lg-8">
+                  <form id="formProfil" action="" method="POST" enctype="multipart/form-data" novalidate>
+                    <?= champCsrf() ?>
+                    <input type="hidden" name="action" value="infos">
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <label for="nom" class="form-label">Nom</label>
+                        <input type="text" class="form-control <?= isset($erreurs['nom']) ? 'is-invalid' : '' ?>"
+                               id="nom" name="nom" value="<?= e($valeurs['nom']) ?>">
+                        <div class="ub-erreur" id="erreur-nom"><?= e($erreurs['nom'] ?? '') ?></div>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <label for="prenom" class="form-label">Prénom</label>
+                        <input type="text" class="form-control <?= isset($erreurs['prenom']) ? 'is-invalid' : '' ?>"
+                               id="prenom" name="prenom" value="<?= e($valeurs['prenom']) ?>">
+                        <div class="ub-erreur" id="erreur-prenom"><?= e($erreurs['prenom'] ?? '') ?></div>
+                      </div>
+                    </div>
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="text" class="form-control <?= isset($erreurs['email']) ? 'is-invalid' : '' ?>"
+                               id="email" name="email" value="<?= e($valeurs['email']) ?>">
+                        <div class="ub-erreur" id="erreur-email"><?= e($erreurs['email'] ?? '') ?></div>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <label for="telephone" class="form-label">Téléphone</label>
+                        <input type="text" class="form-control <?= isset($erreurs['telephone']) ? 'is-invalid' : '' ?>"
+                               id="telephone" name="telephone" value="<?= e($valeurs['telephone']) ?>" placeholder="12345678">
+                        <div class="ub-erreur" id="erreur-telephone"><?= e($erreurs['telephone'] ?? '') ?></div>
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <label for="photo" class="form-label">Nouvelle photo de profil (facultatif)</label>
+                      <input type="file" class="form-control <?= isset($erreurs['photo']) ? 'is-invalid' : '' ?>"
+                             id="photo" name="photo">
+                      <small class="text-muted">JPG, PNG, WEBP ou GIF, 2 Mo maximum. Un aperçu s'affiche à gauche.</small>
+                      <div class="ub-erreur" id="erreur-photo"><?= e($erreurs['photo'] ?? '') ?></div>
+                    </div>
+                    <button type="submit" class="ub-btn pf-btn"><i class="bi bi-check2"></i> Enregistrer les modifications</button>
+                  </form>
                 </div>
-                <div class="mb-3">
-                  <label for="telephone" class="form-label">Téléphone</label>
-                  <input type="text" class="form-control <?= isset($erreurs['telephone']) ? 'is-invalid' : '' ?>"
-                         id="telephone" name="telephone" value="<?= e($valeurs['telephone']) ?>">
-                  <div class="ub-erreur" id="erreur-telephone"><?= e($erreurs['telephone'] ?? '') ?></div>
-                </div>
-                <div class="mb-3">
-                  <label for="photo" class="form-label">Photo de profil (facultatif)</label>
-                  <input type="file" class="form-control <?= isset($erreurs['photo']) ? 'is-invalid' : '' ?>"
-                         id="photo" name="photo">
-                  <small class="text-muted">JPG, PNG, WEBP ou GIF, 2 Mo maximum.</small>
-                  <div class="ub-erreur" id="erreur-photo"><?= e($erreurs['photo'] ?? '') ?></div>
-                </div>
-                <button type="submit" class="ub-btn">Enregistrer</button>
-              </form>
-
-              <hr class="my-4">
-
-              <h4>Changer mon mot de passe</h4>
-              <form id="formMotDePasse" action="" method="POST" novalidate>
-                <?= champCsrf() ?>
-                <input type="hidden" name="action" value="motdepasse">
-                <div class="mb-3">
-                  <label for="ancienMdp" class="form-label">Ancien mot de passe</label>
-                  <input type="password" class="form-control <?= isset($erreursMdp['ancienMdp']) ? 'is-invalid' : '' ?>"
-                         id="ancienMdp" name="ancienMdp">
-                  <div class="ub-erreur" id="erreur-ancienMdp"><?= e($erreursMdp['ancienMdp'] ?? '') ?></div>
-                </div>
-                <div class="row">
-                  <div class="col-md-6 mb-3">
-                    <label for="nouveauMdp" class="form-label">Nouveau mot de passe</label>
-                    <input type="password" class="form-control <?= isset($erreursMdp['nouveauMdp']) ? 'is-invalid' : '' ?>"
-                           id="nouveauMdp" name="nouveauMdp">
-                    <div class="ub-erreur" id="erreur-nouveauMdp"><?= e($erreursMdp['nouveauMdp'] ?? '') ?></div>
-                  </div>
-                  <div class="col-md-6 mb-3">
-                    <label for="confirmMdp" class="form-label">Confirmer</label>
-                    <input type="password" class="form-control <?= isset($erreursMdp['confirmMdp']) ? 'is-invalid' : '' ?>"
-                           id="confirmMdp" name="confirmMdp">
-                    <div class="ub-erreur" id="erreur-confirmMdp"><?= e($erreursMdp['confirmMdp'] ?? '') ?></div>
-                  </div>
-                </div>
-                <button type="submit" class="ub-btn">Changer le mot de passe</button>
-              </form>
+              </div>
             </div>
+
+            <!-- Sécurité -->
+            <div class="tab-pane fade <?= $onglet === 'securite' ? 'show active' : '' ?>" id="onglet-securite" role="tabpanel">
+              <div class="row g-4">
+                <div class="col-lg-5">
+                  <div class="pf-securite">
+                    <h5><i class="bi bi-shield-check"></i> Votre compte est protégé</h5>
+                    <ul>
+                      <li><i class="bi bi-key"></i> Mot de passe chiffré (bcrypt)</li>
+                      <li><i class="bi bi-laptop"></i> Une seule session active à la fois</li>
+                      <li><i class="bi bi-hourglass-split"></i> Déconnexion après 30 min d'inactivité</li>
+                      <li><i class="bi bi-clock-history"></i> Connexion précédente :
+                        <strong><?= $precedente ? e($dateFr($precedente) . ' à ' . date('H:i', strtotime($precedente))) : 'première connexion' ?></strong>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="col-lg-7">
+                  <h5 class="mb-3">Changer mon mot de passe</h5>
+                  <form id="formMotDePasse" action="" method="POST" novalidate>
+                    <?= champCsrf() ?>
+                    <input type="hidden" name="action" value="motdepasse">
+                    <div class="mb-3">
+                      <label for="ancienMdp" class="form-label">Ancien mot de passe</label>
+                      <input type="password" class="form-control <?= isset($erreursMdp['ancienMdp']) ? 'is-invalid' : '' ?>"
+                             id="ancienMdp" name="ancienMdp">
+                      <div class="ub-erreur" id="erreur-ancienMdp"><?= e($erreursMdp['ancienMdp'] ?? '') ?></div>
+                    </div>
+                    <div class="row">
+                      <div class="col-md-6 mb-3">
+                        <label for="nouveauMdp" class="form-label">Nouveau mot de passe</label>
+                        <input type="password" class="form-control <?= isset($erreursMdp['nouveauMdp']) ? 'is-invalid' : '' ?>"
+                               id="nouveauMdp" name="nouveauMdp">
+                        <div class="pf-force"><div id="forceBarre"></div></div>
+                        <small id="forceTexte" class="text-muted">8 caractères minimum, une lettre et un chiffre.</small>
+                        <div class="ub-erreur" id="erreur-nouveauMdp"><?= e($erreursMdp['nouveauMdp'] ?? '') ?></div>
+                      </div>
+                      <div class="col-md-6 mb-3">
+                        <label for="confirmMdp" class="form-label">Confirmer</label>
+                        <input type="password" class="form-control <?= isset($erreursMdp['confirmMdp']) ? 'is-invalid' : '' ?>"
+                               id="confirmMdp" name="confirmMdp">
+                        <div class="ub-erreur" id="erreur-confirmMdp"><?= e($erreursMdp['confirmMdp'] ?? '') ?></div>
+                      </div>
+                    </div>
+                    <button type="submit" class="ub-btn pf-btn"><i class="bi bi-lock"></i> Changer le mot de passe</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <!-- Zone sensible -->
+            <div class="tab-pane fade <?= $onglet === 'danger' ? 'show active' : '' ?>" id="onglet-danger" role="tabpanel">
+              <div class="pf-danger">
+                <h5><i class="bi bi-exclamation-triangle"></i> Supprimer mon compte</h5>
+                <p>Vous ne pourrez plus vous connecter et vos terrains, récoltes et badges ne seront plus visibles.
+                   Seul un <strong>administrateur</strong> pourra restaurer votre compte.</p>
+                <form id="formSuppression" action="" method="POST" novalidate>
+                  <?= champCsrf() ?>
+                  <input type="hidden" name="action" value="supprimerCompte">
+                  <div class="row">
+                    <div class="col-md-6 mb-3">
+                      <label for="mdpSuppression" class="form-label">Votre mot de passe</label>
+                      <input type="password" class="form-control <?= isset($erreursSupp['mdpSuppression']) ? 'is-invalid' : '' ?>"
+                             id="mdpSuppression" name="mdpSuppression">
+                      <div class="ub-erreur" id="erreur-mdpSuppression"><?= e($erreursSupp['mdpSuppression'] ?? '') ?></div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                      <label for="confirmation" class="form-label">Tapez <strong>SUPPRIMER</strong> pour confirmer</label>
+                      <input type="text" class="form-control <?= isset($erreursSupp['confirmation']) ? 'is-invalid' : '' ?>"
+                             id="confirmation" name="confirmation" autocomplete="off">
+                      <div class="ub-erreur" id="erreur-confirmation"><?= e($erreursSupp['confirmation'] ?? '') ?></div>
+                    </div>
+                  </div>
+                  <button type="submit" class="pf-btn-danger"><i class="bi bi-trash"></i> Supprimer mon compte</button>
+                </form>
+              </div>
+            </div>
+
           </div>
         </div>
 

@@ -4,8 +4,14 @@ require_once __DIR__ . '/../../Controller/UtilisateurController.php';
 
 $idAdmin      = requireAdmin();
 $recherche    = trim($_GET['q'] ?? '');
-$utilisateurs = (new UtilisateurController())->listUtilisateurs($recherche);
+$utilisateurC = new UtilisateurController();
+$utilisateurs = $utilisateurC->listUtilisateurs($recherche);
+$supprimes    = $utilisateurC->listUtilisateursSupprimes();   // corbeille
 $flash        = getFlash();
+
+// Compte supprimé à l'instant : on propose « Annuler » une seule fois
+$annuler = $_SESSION['annuler_suppression'] ?? null;
+unset($_SESSION['annuler_suppression']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -334,6 +340,21 @@ $flash        = getFlash();
                         <div class="alert alert-<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
                     <?php endif; ?>
 
+                    <?php if ($annuler): ?>
+                        <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between">
+                            <span>
+                                <i class="fas fa-trash-alt mr-1"></i>
+                                Le compte de <strong><?= e($annuler['nom']) ?></strong> a été supprimé.
+                                S'il essaie de se connecter, il verra « compte supprimé ».
+                            </span>
+                            <form action="restaurerUtilisateur.php" method="POST" class="mb-0 mt-2 mt-md-0">
+                                <?= champCsrf() ?>
+                                <input type="hidden" name="id" value="<?= e($annuler['id']) ?>">
+                                <button type="submit" class="btn btn-sm btn-dark"><i class="fas fa-undo"></i> Annuler la suppression</button>
+                            </form>
+                        </div>
+                    <?php endif; ?>
+
                     <div class="card shadow mb-4">
                         <div class="card-header py-3">
                             <h6 class="m-0 font-weight-bold text-success">Liste des utilisateurs (<?= count($utilisateurs) ?>)</h6>
@@ -404,7 +425,7 @@ $flash        = getFlash();
                                                             <?php endif; ?>
                                                         </form>
                                                         <form action="supprimerUtilisateur.php" method="POST" class="d-inline"
-                                                              onsubmit="return confirm('Supprimer ce compte ? Ses terrains, récoltes et badges seront effacés et il ne pourra plus se connecter.');">
+                                                              onsubmit="return confirm('Supprimer ce compte ? Il ne pourra plus se connecter. Vous pourrez le restaurer depuis la corbeille.');">
                                                           <?= champCsrf() ?>
                                                             <input type="hidden" name="id" value="<?= e($u['id']) ?>">
                                                             <button type="submit" class="btn btn-danger btn-sm" title="Supprimer"><i class="fas fa-trash"></i></button>
@@ -418,6 +439,54 @@ $flash        = getFlash();
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Corbeille : comptes supprimés, restaurables -->
+                    <div class="card shadow mb-4" id="corbeille">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-danger">
+                                <i class="fas fa-trash-restore"></i> Comptes supprimés (<?= count($supprimes) ?>)
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <?php if (empty($supprimes)): ?>
+                                <p class="text-muted mb-0">La corbeille est vide.</p>
+                            <?php else: ?>
+                                <p class="small text-muted">Un compte supprimé ne peut plus se connecter et ses données sont cachées. « Restaurer » le rend de nouveau actif avec ses terrains, récoltes et badges.</p>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm" width="100%">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Nom complet</th>
+                                                <th>Email</th>
+                                                <th>Rôle</th>
+                                                <th>Supprimé le</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($supprimes as $s): ?>
+                                                <tr>
+                                                    <td><?= e($s['id']) ?></td>
+                                                    <td><?= e($s['prenom'] . ' ' . $s['nom']) ?></td>
+                                                    <td><?= e($s['email']) ?></td>
+                                                    <td><?= e(UtilisateurController::ROLES[$s['role']] ?? $s['role']) ?></td>
+                                                    <td><?= $s['dateSuppression'] ? e(date('d/m/Y H:i', strtotime($s['dateSuppression']))) : '-' ?></td>
+                                                    <td>
+                                                        <form action="restaurerUtilisateur.php" method="POST" class="d-inline">
+                                                            <?= champCsrf() ?>
+                                                            <input type="hidden" name="id" value="<?= e($s['id']) ?>">
+                                                            <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-undo"></i> Restaurer</button>
+                                                        </form>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
 

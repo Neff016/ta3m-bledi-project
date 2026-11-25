@@ -44,6 +44,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['nom']               = $user['nom'];
             $_SESSION['prenom']            = $user['prenom'];
             $_SESSION['session_token']     = $utilisateurC->ouvrirSession((int) $user['id']);
+            $_SESSION['connexion_precedente'] = $user['derniereConnexion'] ?? null;   // affichée dans le profil
+            $utilisateurC->enregistrerConnexion((int) $user['id']);
             $_SESSION['derniere_activite'] = time();
 
             setFlash('Bienvenue ' . $user['prenom'] . ' !');
